@@ -254,6 +254,38 @@ describe('WebStack', () => {
       }),
     });
   });
+
+  it('lets an API error reach the caller unaltered', () => {
+    // CustomErrorResponses is a property of the distribution, not of a
+    // behaviour, so anything listed here also rewrites the API's 403s and
+    // 404s into `200` plus the SPA shell. auth.ts answers 404 rather than 403
+    // precisely so a caller cannot tell a barred collection from a missing
+    // one; that distinction only survives if the status survives the edge.
+    const config = t().findResources('AWS::CloudFront::Distribution');
+    for (const resource of Object.values(config)) {
+      expect(resource.Properties.DistributionConfig.CustomErrorResponses).toBeUndefined();
+    }
+  });
+
+  it('routes the SPA at the edge instead, on the default behaviour only', () => {
+    // The replacement for CustomErrorResponses. It must not be attached to
+    // /api/*, or every API path would be rewritten to /index.html.
+    t().hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        DefaultCacheBehavior: Match.objectLike({
+          FunctionAssociations: Match.arrayWith([
+            Match.objectLike({ EventType: 'viewer-request' }),
+          ]),
+        }),
+      }),
+    });
+
+    t().hasResourceProperties('AWS::CloudFront::Function', {
+      FunctionConfig: Match.objectLike({
+        Comment: 'Serve index.html for client-side routes',
+      }),
+    });
+  });
 });
 
 describe('GithubCiStack', () => {

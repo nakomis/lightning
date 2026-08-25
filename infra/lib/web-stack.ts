@@ -88,6 +88,35 @@ function handler(event) {
 `),
     });
 
+    // Client-side routing, done at the edge rather than with `errorResponses`.
+    //
+    // `errorResponses` is a property of the *distribution*, not of a behaviour,
+    // so a 403 or 404 from any origin is rewritten — including the API's. That
+    // would turn "no such collection" into `200` plus a page of HTML, and the
+    // deliberate choice in auth.ts to answer 404 rather than 403 would stop
+    // being visible to the caller at all. Rewriting the path on the way in
+    // keeps the SPA working and leaves API responses exactly as the API sent
+    // them.
+    const spaRouter = new cloudfront.Function(this, 'SpaRouter', {
+      functionName: `lightning-spa-router-${deployEnv}`,
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+      comment: 'Serve index.html for client-side routes',
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var uri = request.uri;
+  // A real asset always has an extension in its final segment; a route never
+  // does. Anything else is a route, so hand back the shell and let the router
+  // in the browser deal with it.
+  var last = uri.slice(uri.lastIndexOf('/') + 1);
+  if (last.indexOf('.') === -1) {
+    request.uri = '/index.html';
+  }
+  return request;
+}
+`),
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(this.bucket, {
@@ -95,13 +124,11 @@ function handler(event) {
         }),
         viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
         cachePolicy: cloudfront.CachePolicy.CACHING_OPTIMIZED,
+        functionAssociations: [
+          { function: spaRouter, eventType: cloudfront.FunctionEventType.VIEWER_REQUEST },
+        ],
       },
       defaultRootObject: 'index.html',
-      // A client-routed SPA: anything S3 doesn't have is a route, not a 404.
-      errorResponses: [
-        { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
-        { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
-      ],
       additionalBehaviors: {
         [`${API_PATH_PREFIX}/*`]: {
           origin: new origins.HttpOrigin(apiDomainName, {
