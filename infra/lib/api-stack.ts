@@ -11,9 +11,10 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import loginBrandingSettings from './login-branding.json';
 import {
   API_PATH_PREFIX,
-  BOOTSTRAP_ADMIN_EMAIL,
+  bootstrapAdminEmail,
   DeployEnv,
   DEV_ORIGIN,
   GATE_GROUP,
@@ -77,6 +78,24 @@ export class ApiStack extends cdk.Stack {
     });
     const clientId = client.userPoolClientId;
 
+    // Managed login branding.
+    //
+    // The shared pool's domain runs managed login (branding version 2), where
+    // the hosted sign-in page is rendered per app client from a branding style.
+    // A client without one does not fall back to a default — it serves "Login
+    // pages unavailable. Please contact an administrator." and no sign-in is
+    // possible at all.
+    //
+    // The style is the one the other applications on this pool use, so signing
+    // in to lightning does not look like signing in to somewhere else. Cognito's
+    // stock style is a pale one and stands out badly beside them.
+    new cognito.CfnManagedLoginBranding(this, 'LoginBranding', {
+      userPoolId,
+      clientId,
+      useCognitoProvidedValues: false,
+      settings: loginBrandingSettings,
+    });
+
     // The gate group. Created here rather than by hand so a fresh environment is
     // usable without anyone remembering this step — but note the group is on the
     // *shared* pool, so the name has to stay namespaced.
@@ -125,10 +144,21 @@ export class ApiStack extends cdk.Stack {
     const getTalk = fn('GetTalkHandler', 'api/get-talk.ts');
     const createTalk = fn('CreateTalkHandler', 'api/create-talk.ts');
     const uploadUrl = fn('UploadUrlHandler', 'api/upload-url.ts');
+    const confirmUpload = fn('ConfirmUploadHandler', 'api/confirm-upload.ts');
+    const talkContent = fn('TalkContentHandler', 'api/talk-content.ts');
     const share = fn('ShareHandler', 'api/share.ts');
     const resolveShare = fn('ResolveShareHandler', 'api/resolve-share.ts');
 
-    for (const h of [me, listTalks, getTalk, createTalk, uploadUrl, share]) {
+    for (const h of [
+      me,
+      listTalks,
+      getTalk,
+      createTalk,
+      uploadUrl,
+      confirmUpload,
+      talkContent,
+      share,
+    ]) {
       accessTable.grantReadData(h);
     }
     talksTable.grantReadData(listTalks);
@@ -137,6 +167,9 @@ export class ApiStack extends cdk.Stack {
     talksTable.grantReadData(share);
     talksTable.grantReadData(resolveShare);
     talksTable.grantWriteData(createTalk);
+    talksTable.grantReadWriteData(confirmUpload);
+    talksTable.grantReadData(talkContent);
+    contentBucket.grantRead(talkContent);
     shareTable.grantReadWriteData(share);
     shareTable.grantReadData(resolveShare);
     contentBucket.grantPut(uploadUrl);
@@ -179,6 +212,18 @@ export class ApiStack extends cdk.Stack {
     route('/talks/{talkId}', [apigwv2.HttpMethod.GET], getTalk, 'GetTalkIntegration');
     route('/talks/{talkId}/upload-url', [apigwv2.HttpMethod.POST], uploadUrl, 'UploadUrlIntegration');
     route(
+      '/talks/{talkId}/content',
+      [apigwv2.HttpMethod.GET],
+      talkContent,
+      'TalkContentIntegration',
+    );
+    route(
+      '/talks/{talkId}/files',
+      [apigwv2.HttpMethod.POST],
+      confirmUpload,
+      'ConfirmUploadIntegration',
+    );
+    route(
       '/talks/{talkId}/share',
       [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
       share,
@@ -207,22 +252,31 @@ export class ApiStack extends cdk.Stack {
     // sub is what lets this be a constant instead of a deploy-time lookup.
     // Conditional so a re-deploy never overwrites a role changed since.
     new customresources.AwsCustomResource(this, 'SeedBootstrapAdmin', {
-      onCreate: {
+      // onUpdate rather than onCreate, because CDK falls back to onUpdate for
+      // the Create event too — whereas an onCreate-only resource does nothing
+      // at all on an update, so changing the address would silently never be
+      // written.
+      onUpdate: {
         service: 'DynamoDB',
         action: 'putItem',
+        // The address is part of the id so that changing it re-runs this.
         physicalResourceId: customresources.PhysicalResourceId.of(
-          `seed-admin-${deployEnv}`,
+          `seed-admin-${deployEnv}-${bootstrapAdminEmail(deployEnv)}`,
         ),
         parameters: {
           TableName: accessTable.tableName,
           Item: {
-            pk: { S: `USER#${BOOTSTRAP_ADMIN_EMAIL}` },
+            pk: { S: `USER#${bootstrapAdminEmail(deployEnv)}` },
             sk: { S: 'ROOT' },
             role: { S: 'admin' },
             seededAt: { S: new Date().toISOString() },
           },
+          // Never overwrite a role that has been changed since.
           ConditionExpression: 'attribute_not_exists(pk)',
         },
+        // Which means the row already exists, and that is the desired state —
+        // not a deploy failure.
+        ignoreErrorCodesMatching: 'ConditionalCheckFailedException',
       },
       policy: customresources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [accessTable.tableArn],

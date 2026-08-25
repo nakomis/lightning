@@ -44,8 +44,20 @@ export const GATE_GROUP = 'lightning';
  * Seeded as the first admin so there is someone who can grant everyone else
  * access. Keyed on email rather than Cognito sub precisely so this can be a
  * constant rather than a deploy-time lookup.
+ *
+ * Per environment, because the two Cognito pools hold different identities for
+ * the same person: the sandbox pool has no `martin@nakomis.com` at all, so a
+ * single constant seeds an admin row that nobody who can sign in will ever
+ * match — the app comes up with every collection invisible and no way to grant
+ * anything.
  */
-export const BOOTSTRAP_ADMIN_EMAIL = 'martin@nakomis.com';
+const BOOTSTRAP_ADMINS: Record<DeployEnv, string> = {
+  sandbox: 'sandboxuser@nakomis.com',
+  prod: 'martin@nakomis.com',
+};
+
+export const bootstrapAdminEmail = (deployEnv: DeployEnv): string =>
+  BOOTSTRAP_ADMINS[deployEnv];
 
 /** Collections that exist at launch. Adding another is a table row, not a deploy. */
 export const INITIAL_COLLECTIONS = ['Personal', 'TDS'];

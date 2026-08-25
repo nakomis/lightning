@@ -157,7 +157,7 @@ describe('ApiStack', () => {
     // principal rather than the table.
     const resources = t().findResources('Custom::AWS');
     const seeds = Object.values(resources).filter((r) =>
-      JSON.stringify(r.Properties).includes('USER#martin@nakomis.com'),
+      JSON.stringify(r.Properties).includes('USER#sandboxuser@nakomis.com'),
     );
     expect(seeds).toHaveLength(1);
     const props = JSON.stringify(seeds[0].Properties);
