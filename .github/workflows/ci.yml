@@ -1,0 +1,202 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  workflow_dispatch:
+
+# Check out the post-merge state on PRs so CI validates what will land on main,
+# not just the branch tip. Falls back to the commit SHA on push/workflow_dispatch.
+env:
+  CHECKOUT_REF: ${{ github.event_name == 'pull_request' && format('refs/pull/{0}/merge', github.event.pull_request.number) || github.sha }}
+  AWS_REGION: eu-west-2
+
+jobs:
+  # ── Path-change detection ───────────────────────────────────────────────────
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    outputs:
+      infra: ${{ steps.filter.outputs.infra }}
+      web: ${{ steps.filter.outputs.web }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            infra:
+              - 'infra/**'
+              - '.github/workflows/ci.yml'
+            web:
+              - 'web/**'
+              - '.github/workflows/ci.yml'
+
+  # ── Infra: type-check and unit tests ────────────────────────────────────────
+  infra:
+    name: Infra (CDK / Lambda)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.infra == 'true' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+
+      # pnpm before setup-node: setup-node's cache keys off the pnpm store, so
+      # the order is load-bearing. The version comes from "packageManager" in
+      # infra/package.json rather than being pinned twice.
+      - name: Set up pnpm
+        uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/package.json
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: infra/pnpm-lock.yaml
+
+      # No ~/.npmrc on the runner, so pnpm resolves from npmjs. The lockfile is
+      # registry-agnostic — integrity hashes, no tarball URLs — so this is the
+      # same tree a developer gets resolving through the home Nexus proxy.
+      - name: Install dependencies
+        working-directory: infra
+        run: pnpm install --frozen-lockfile
+
+      - name: Type-check
+        working-directory: infra
+        run: pnpm typecheck
+
+      - name: Test with coverage
+        working-directory: infra
+        run: pnpm test
+
+  # ── CDK synth: validates the template on PRs as well as pushes ──────────────
+  synth-infra:
+    name: CDK synth
+    runs-on: ubuntu-latest
+    needs: [changes, infra]
+    if: needs.changes.outputs.infra == 'true' || github.event_name == 'workflow_dispatch'
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: infra/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: infra
+        run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials (sandbox)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_SANDBOX_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Synth against sandbox
+        working-directory: infra
+        run: pnpm ci-synth-sandbox
+
+  # ── Deploy ─────────────────────────────────────────────────────────────────
+  deploy-sandbox:
+    name: Deploy — sandbox
+    runs-on: ubuntu-latest
+    needs: [changes, synth-infra]
+    if: |
+      (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && needs.changes.outputs.infra == 'true'
+    environment: sandbox
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: infra/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: infra
+        run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials (sandbox)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_SANDBOX_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy
+        working-directory: infra
+        run: pnpm ci-deploy-sandbox
+
+  deploy-prod:
+    name: Deploy — production
+    runs-on: ubuntu-latest
+    needs: deploy-sandbox
+    if: github.event_name == 'push'
+    # Gated: the production environment requires a review before this runs.
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: infra/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: infra/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: infra
+        run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials (prod)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PROD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Deploy
+        working-directory: infra
+        run: pnpm ci-deploy-prod
+
+  # ── Gate ───────────────────────────────────────────────────────────────────
+  # One always-running job for branch protection to require, so adding or
+  # skipping a job never silently weakens the gate.
+  ci-status:
+    name: CI Status
+    runs-on: ubuntu-latest
+    needs: [infra, synth-infra]
+    if: always()
+    steps:
+      - name: Fail if any needed job failed
+        run: |
+          echo "infra:       ${{ needs.infra.result }}"
+          echo "synth-infra: ${{ needs.synth-infra.result }}"
+          for result in "${{ needs.infra.result }}" "${{ needs.synth-infra.result }}"; do
+            if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
+              echo "::error::A required job did not pass"
+              exit 1
+            fi
+          done
+          echo "All required jobs passed or were skipped."
