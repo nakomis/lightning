@@ -77,6 +77,23 @@ export class ApiStack extends cdk.Stack {
     });
     const clientId = client.userPoolClientId;
 
+    // Managed login branding.
+    //
+    // The shared pool's domain runs managed login (branding version 2), where
+    // the hosted sign-in page is rendered per app client from a branding style.
+    // A client without one does not fall back to a default — it serves "Login
+    // pages unavailable. Please contact an administrator." and no sign-in is
+    // possible at all.
+    //
+    // `useCognitoProvidedValues` takes Cognito's stock style rather than
+    // pinning a full settings document here, which would be several hundred
+    // lines of colour tokens to maintain for a look nobody has asked to change.
+    new cognito.CfnManagedLoginBranding(this, 'LoginBranding', {
+      userPoolId,
+      clientId,
+      useCognitoProvidedValues: true,
+    });
+
     // The gate group. Created here rather than by hand so a fresh environment is
     // usable without anyone remembering this step — but note the group is on the
     // *shared* pool, so the name has to stay namespaced.
