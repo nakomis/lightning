@@ -203,7 +203,12 @@ describe('GithubCiStack', () => {
           Match.objectLike({
             Condition: Match.objectLike({
               StringLike: {
-                'token.actions.githubusercontent.com:sub': 'repo:nakomis/lightning:*',
+                'token.actions.githubusercontent.com:sub': [
+                  // Immutable ids. GitHub moved to this format and a policy
+                  // pinned only to names silently stops matching.
+                  'repo:nakomis@1488244/lightning@1346228874:*',
+                  'repo:nakomis/lightning:*',
+                ],
               },
             }),
           }),

@@ -1,7 +1,7 @@
 import * as cdk from 'aws-cdk-lib';
 import * as iam from 'aws-cdk-lib/aws-iam';
 import { Construct } from 'constructs';
-import { DeployEnv } from './env';
+import { DeployEnv, oidcSubjectPatterns } from './env';
 
 export interface GithubCiStackProps extends cdk.StackProps {
   deployEnv: DeployEnv;
@@ -35,8 +35,11 @@ export class GithubCiStack extends cdk.Stack {
         // Scoped to this repository. Any branch may assume it, because the
         // GitHub environment gates are what stop an arbitrary branch deploying
         // to prod, and a PR still needs to synth against sandbox.
+        //
+        // A list is an OR. Both the immutable-id subject GitHub emits today and
+        // the legacy name-only one are accepted — see oidcSubjectPatterns.
         StringLike: {
-          'token.actions.githubusercontent.com:sub': 'repo:nakomis/lightning:*',
+          'token.actions.githubusercontent.com:sub': oidcSubjectPatterns(),
         },
       }),
       description: `Assumed by lightning GitHub Actions CI (${deployEnv})`,

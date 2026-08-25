@@ -41,3 +41,26 @@ export const BOOTSTRAP_ADMIN_EMAIL = 'martin@nakomis.com';
 
 /** Collections that exist at launch. Adding another is a table row, not a deploy. */
 export const INITIAL_COLLECTIONS = ['Personal', 'TDS'];
+
+/**
+ * GitHub's OIDC subject now carries immutable numeric IDs:
+ *
+ *   repo:OWNER@OWNER_ID/REPO@REPO_ID:CONTEXT
+ *
+ * rather than the older `repo:OWNER/REPO:CONTEXT`. The IDs survive a rename,
+ * which is the point — a trust policy pinned to names alone can be inherited by
+ * whoever claims the name after you give it up.
+ *
+ * Both forms are accepted below, because the legacy subject is still emitted in
+ * some contexts and there is no benefit to failing closed on it while the names
+ * are pinned in either case.
+ */
+export const GITHUB_OWNER = 'nakomis';
+export const GITHUB_OWNER_ID = '1488244';
+export const GITHUB_REPO = 'lightning';
+export const GITHUB_REPO_ID = '1346228874';
+
+export const oidcSubjectPatterns = (): string[] => [
+  `repo:${GITHUB_OWNER}@${GITHUB_OWNER_ID}/${GITHUB_REPO}@${GITHUB_REPO_ID}:*`,
+  `repo:${GITHUB_OWNER}/${GITHUB_REPO}:*`,
+];
