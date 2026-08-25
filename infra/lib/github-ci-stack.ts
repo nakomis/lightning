@@ -60,6 +60,24 @@ export class GithubCiStack extends cdk.Stack {
               actions: ['ssm:GetParameter', 'ssm:GetParameters'],
               resources: [`arn:aws:ssm:${this.region}:${this.account}:parameter/lightning/*`],
             }),
+            // Publishing the built SPA. Scoped to the one bucket, and `--delete`
+            // on the sync means DeleteObject is needed as well as Put.
+            new iam.PolicyStatement({
+              actions: ['s3:PutObject', 's3:DeleteObject'],
+              resources: [`arn:aws:s3:::lightning-web-${this.account}-${deployEnv}/*`],
+            }),
+            new iam.PolicyStatement({
+              actions: ['s3:ListBucket'],
+              resources: [`arn:aws:s3:::lightning-web-${this.account}-${deployEnv}`],
+            }),
+            // CloudFront is global, so this cannot be scoped by region. The
+            // distribution id is not known here without a cross-stack
+            // reference that would invert the dependency, and an invalidation
+            // is not a destructive operation.
+            new iam.PolicyStatement({
+              actions: ['cloudfront:CreateInvalidation'],
+              resources: ['*'],
+            }),
           ],
         }),
       },

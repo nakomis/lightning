@@ -125,10 +125,21 @@ export class ApiStack extends cdk.Stack {
     const getTalk = fn('GetTalkHandler', 'api/get-talk.ts');
     const createTalk = fn('CreateTalkHandler', 'api/create-talk.ts');
     const uploadUrl = fn('UploadUrlHandler', 'api/upload-url.ts');
+    const confirmUpload = fn('ConfirmUploadHandler', 'api/confirm-upload.ts');
+    const talkContent = fn('TalkContentHandler', 'api/talk-content.ts');
     const share = fn('ShareHandler', 'api/share.ts');
     const resolveShare = fn('ResolveShareHandler', 'api/resolve-share.ts');
 
-    for (const h of [me, listTalks, getTalk, createTalk, uploadUrl, share]) {
+    for (const h of [
+      me,
+      listTalks,
+      getTalk,
+      createTalk,
+      uploadUrl,
+      confirmUpload,
+      talkContent,
+      share,
+    ]) {
       accessTable.grantReadData(h);
     }
     talksTable.grantReadData(listTalks);
@@ -137,6 +148,9 @@ export class ApiStack extends cdk.Stack {
     talksTable.grantReadData(share);
     talksTable.grantReadData(resolveShare);
     talksTable.grantWriteData(createTalk);
+    talksTable.grantReadWriteData(confirmUpload);
+    talksTable.grantReadData(talkContent);
+    contentBucket.grantRead(talkContent);
     shareTable.grantReadWriteData(share);
     shareTable.grantReadData(resolveShare);
     contentBucket.grantPut(uploadUrl);
@@ -178,6 +192,18 @@ export class ApiStack extends cdk.Stack {
     route('/talks', [apigwv2.HttpMethod.POST], createTalk, 'CreateTalkIntegration');
     route('/talks/{talkId}', [apigwv2.HttpMethod.GET], getTalk, 'GetTalkIntegration');
     route('/talks/{talkId}/upload-url', [apigwv2.HttpMethod.POST], uploadUrl, 'UploadUrlIntegration');
+    route(
+      '/talks/{talkId}/content',
+      [apigwv2.HttpMethod.GET],
+      talkContent,
+      'TalkContentIntegration',
+    );
+    route(
+      '/talks/{talkId}/files',
+      [apigwv2.HttpMethod.POST],
+      confirmUpload,
+      'ConfirmUploadIntegration',
+    );
     route(
       '/talks/{talkId}/share',
       [apigwv2.HttpMethod.POST, apigwv2.HttpMethod.DELETE],
