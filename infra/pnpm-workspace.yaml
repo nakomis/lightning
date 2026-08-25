@@ -1,2 +1,10 @@
+# pnpm 11 refuses to run a dependency's install scripts unless it is named here
+# — a sensible default, since a postinstall is arbitrary code from the registry.
+# esbuild genuinely needs one: it fetches its platform-specific binary. Without
+# this, a clean install fails with ERR_PNPM_IGNORED_BUILDS, which passes locally
+# (node_modules already populated) and only bites in CI.
+#
+# Note the key is `allowBuilds` in pnpm 11; pnpm 10 called it
+# `onlyBuiltDependencies` and takes a list rather than a map.
 allowBuilds:
-  esbuild: set this to true or false
+  esbuild: true
