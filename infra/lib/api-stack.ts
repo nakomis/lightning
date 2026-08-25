@@ -2,6 +2,7 @@ import * as cdk from 'aws-cdk-lib';
 import * as apigwv2 from 'aws-cdk-lib/aws-apigatewayv2';
 import { HttpJwtAuthorizer } from 'aws-cdk-lib/aws-apigatewayv2-authorizers';
 import { HttpLambdaIntegration } from 'aws-cdk-lib/aws-apigatewayv2-integrations';
+import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as customresources from 'aws-cdk-lib/custom-resources';
 import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
 import * as lambda from 'aws-cdk-lib/aws-lambda';
@@ -11,11 +12,13 @@ import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
 import {
+  API_PATH_PREFIX,
   BOOTSTRAP_ADMIN_EMAIL,
   DeployEnv,
   DEV_ORIGIN,
   GATE_GROUP,
   INITIAL_COLLECTIONS,
+  appDomain,
   appOrigin,
 } from './env';
 
@@ -28,22 +31,61 @@ export interface ApiStackProps extends cdk.StackProps {
 }
 
 export class ApiStack extends cdk.Stack {
+  /**
+   * The execute-api hostname, for CloudFront to use as an origin. Exposed as a
+   * plain host rather than a URL because that is the shape an origin takes.
+   */
+  readonly apiDomainName: string;
+
   constructor(scope: Construct, id: string, props: ApiStackProps) {
     super(scope, id, props);
 
     const { deployEnv, talksTable, accessTable, shareTable, contentBucket } = props;
     const origin = appOrigin(deployEnv);
+    const domain = appDomain(deployEnv);
 
-    // Both read by SSM *parameter name* — a stable handle that survives the pool
-    // or client being recreated, since the ID changes but the name does not.
+    // ── Cognito ──────────────────────────────────────────────────────────────
+    // The pool is shared with nine other applications. Read it, add our own
+    // client, and change nothing else about it.
+    //
+    // The client lives here rather than with the SPA because the API's JWT
+    // authoriser needs its id as the audience. Putting it in WebStack meant the
+    // API had to wait for the web stack, and once CloudFront fronts the API the
+    // web stack has to wait for the API — which is a cycle. Owning the client
+    // here points both edges the same way.
     const userPoolId = ssm.StringParameter.valueForStringParameter(
       this,
       `/nakomis-infra/${deployEnv}/cognito/user-pool-id`,
     );
-    const clientId = ssm.StringParameter.valueForStringParameter(
-      this,
-      `/lightning/${deployEnv}/cognito/client-id`,
-    );
+    const userPool = cognito.UserPool.fromUserPoolId(this, 'SharedPool', userPoolId);
+
+    const client = new cognito.UserPoolClient(this, 'LightningClient', {
+      userPoolClientName: `lightning-spa-${deployEnv}`,
+      userPool,
+      authFlows: { userSrp: true },
+      generateSecret: false,
+      oAuth: {
+        // Authorisation code + PKCE only. CDK's default enables the implicit
+        // grant as well, which hands tokens back in the URL fragment — they end
+        // up in history, in referrers, and in any script on the page. There is
+        // no reason a public SPA needs it.
+        flows: { authorizationCodeGrant: true, implicitCodeGrant: false },
+        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
+        callbackUrls: [`https://${domain}/loggedin`, `${DEV_ORIGIN}/loggedin`],
+        logoutUrls: [`https://${domain}/logout`, `${DEV_ORIGIN}/logout`],
+      },
+    });
+    const clientId = client.userPoolClientId;
+
+    // The gate group. Created here rather than by hand so a fresh environment is
+    // usable without anyone remembering this step — but note the group is on the
+    // *shared* pool, so the name has to stay namespaced.
+    const gateGroup = new cognito.CfnUserPoolGroup(this, 'GateGroup', {
+      userPoolId,
+      groupName: GATE_GROUP,
+      description: 'May sign in to lightning. Per-collection access lives in DynamoDB.',
+    });
+    gateGroup.node.addDependency(client);
 
     const authorizer = new HttpJwtAuthorizer(
       'CognitoAuthorizer',
@@ -188,11 +230,27 @@ export class ApiStack extends cdk.Stack {
       installLatestAwsSdk: false,
     });
 
-    new ssm.StringParameter(this, 'ApiUrlParam', {
-      parameterName: `/lightning/${deployEnv}/api/url`,
-      stringValue: api.url!,
-    });
+    // ── Handles ──────────────────────────────────────────────────────────────
+    const loginDomain = ssm.StringParameter.valueForStringParameter(
+      this,
+      `/nakomis-infra/${deployEnv}/cognito/login-domain`,
+    );
 
-    new cdk.CfnOutput(this, 'ApiUrl', { value: api.url! });
+    const params: Array<[string, string, string]> = [
+      ['ClientIdParam', `/lightning/${deployEnv}/cognito/client-id`, clientId],
+      ['UserPoolIdParam', `/lightning/${deployEnv}/cognito/user-pool-id`, userPoolId],
+      ['LoginDomainParam', `/lightning/${deployEnv}/cognito/login-domain`, loginDomain],
+      // The public path, not the execute-api one. Everything the browser calls
+      // goes through CloudFront; the raw hostname is for the origin only.
+      ['ApiUrlParam', `/lightning/${deployEnv}/api/url`, `${origin}${API_PATH_PREFIX}`],
+    ];
+    for (const [id, parameterName, stringValue] of params) {
+      new ssm.StringParameter(this, id, { parameterName, stringValue });
+    }
+
+    this.apiDomainName = `${api.apiId}.execute-api.${this.region}.amazonaws.com`;
+
+    new cdk.CfnOutput(this, 'ApiUrl', { value: `${origin}${API_PATH_PREFIX}` });
+    new cdk.CfnOutput(this, 'ApiOriginDomainName', { value: this.apiDomainName });
   }
 }

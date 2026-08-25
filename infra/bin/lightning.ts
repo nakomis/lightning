@@ -46,14 +46,6 @@ const webCertStack = new WebCertStack(app, 'LightningWebCertStack', {
   description: `ACM certificate for ${appDomain(deployEnv)} (us-east-1, for CloudFront)`,
 });
 
-const webStack = new WebStack(app, 'LightningWebStack', {
-  ...londonEnv,
-  deployEnv,
-  certificate: webCertStack.certificate,
-  crossRegionReferences: true,
-  description: `CloudFront, S3 SPA hosting and the Cognito client (${deployEnv})`,
-});
-
 const apiStack = new ApiStack(app, 'LightningApiStack', {
   ...londonEnv,
   deployEnv,
@@ -61,10 +53,17 @@ const apiStack = new ApiStack(app, 'LightningApiStack', {
   accessTable: dataStack.accessTable,
   shareTable: dataStack.shareTable,
   contentBucket: dataStack.contentBucket,
-  description: `HTTP API and Lambda handlers (${deployEnv})`,
+  description: `HTTP API, Lambda handlers and the Cognito client (${deployEnv})`,
 });
 
-// The API reads the Cognito client id that WebStack publishes to SSM. That is a
-// deploy-time read of a parameter, not a CloudFormation reference, so the
-// ordering has to be stated explicitly or a fresh environment races.
-apiStack.addStackDependency(webStack);
+// WebStack fronts the API under /api/*, so it needs the execute-api hostname.
+// That reference is what fixes the deploy order — and why the Cognito client
+// sits in ApiStack rather than here, which would have made it a cycle.
+new WebStack(app, 'LightningWebStack', {
+  ...londonEnv,
+  deployEnv,
+  certificate: webCertStack.certificate,
+  apiDomainName: apiStack.apiDomainName,
+  crossRegionReferences: true,
+  description: `CloudFront and S3 SPA hosting, fronting the API (${deployEnv})`,
+});

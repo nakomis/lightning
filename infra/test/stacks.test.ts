@@ -26,12 +26,6 @@ function build() {
     deployEnv: 'sandbox',
     crossRegionReferences: true,
   });
-  const web = new WebStack(app, 'Web', {
-    env,
-    deployEnv: 'sandbox',
-    certificate: cert.certificate,
-    crossRegionReferences: true,
-  });
   const api = new ApiStack(app, 'Api', {
     env,
     deployEnv: 'sandbox',
@@ -39,6 +33,13 @@ function build() {
     accessTable: data.accessTable,
     shareTable: data.shareTable,
     contentBucket: data.contentBucket,
+  });
+  const web = new WebStack(app, 'Web', {
+    env,
+    deployEnv: 'sandbox',
+    certificate: cert.certificate,
+    apiDomainName: api.apiDomainName,
+    crossRegionReferences: true,
   });
   const ci = new GithubCiStack(app, 'Ci', {
     env,
@@ -132,6 +133,25 @@ describe('ApiStack', () => {
     }
   });
 
+  it('creates the gate group on the shared pool, namespaced', () => {
+    t().hasResourceProperties('AWS::Cognito::UserPoolGroup', { GroupName: 'lightning' });
+  });
+
+  it('uses the authorisation code flow only, never implicit', () => {
+    // Implicit returns tokens in the URL fragment, where they leak into
+    // history and referrers. CDK enables it by default, so this is pinned.
+    t().hasResourceProperties('AWS::Cognito::UserPoolClient', {
+      AllowedOAuthFlows: ['code'],
+    });
+  });
+
+  it('does not put a client secret in a public SPA', () => {
+    const clients = t().findResources('AWS::Cognito::UserPoolClient');
+    for (const c of Object.values(clients)) {
+      expect(c.Properties.GenerateSecret).toBeFalsy();
+    }
+  });
+
   it('seeds a bootstrap admin conditionally, so a redeploy cannot overwrite a change', () => {
     // The table name arrives as an Fn::ImportValue, so match on the seeded
     // principal rather than the table.
@@ -158,6 +178,68 @@ describe('WebStack', () => {
     });
   });
 
+  it('does not redirect the API behaviour to HTTPS, only the SPA', () => {
+    // A 301 on an API call loses the body on any non-GET, and many clients
+    // drop the Authorization header across a redirect. Deliberate asymmetry:
+    // the default behaviour redirects, /api/* does not.
+    t().hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        DefaultCacheBehavior: Match.objectLike({ ViewerProtocolPolicy: 'redirect-to-https' }),
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/api/*',
+            ViewerProtocolPolicy: 'allow-all',
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it('never caches an API response', () => {
+    // CachePolicyId must be the managed CachingDisabled policy — caching a
+    // response keyed without Authorization would serve one user another's data.
+    t().hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/api/*',
+            CachePolicyId: '4135ea2d-6df8-44a3-9df3-4b5a84be39ad',
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it('strips the /api prefix before the request reaches API Gateway', () => {
+    t().hasResourceProperties('AWS::CloudFront::Function', {
+      FunctionCode: Match.stringLikeRegexp("prefix = '/api'"),
+    });
+    t().hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        CacheBehaviors: Match.arrayWith([
+          Match.objectLike({
+            PathPattern: '/api/*',
+            FunctionAssociations: [
+              Match.objectLike({ EventType: 'viewer-request' }),
+            ],
+          }),
+        ]),
+      }),
+    });
+  });
+
+  it('reaches the API over HTTPS regardless of how the viewer arrived', () => {
+    t().hasResourceProperties('AWS::CloudFront::Distribution', {
+      DistributionConfig: Match.objectLike({
+        Origins: Match.arrayWith([
+          Match.objectLike({
+            CustomOriginConfig: Match.objectLike({ OriginProtocolPolicy: 'https-only' }),
+          }),
+        ]),
+      }),
+    });
+  });
+
   it('sets Referrer-Policy through the security behaviour, not as a custom header', () => {
     // CloudFront rejects Referrer-Policy as a custom header outright — it is on
     // its list of recognised security headers. Cost a failed deploy to find.
@@ -171,25 +253,6 @@ describe('WebStack', () => {
         }),
       }),
     });
-  });
-
-  it('creates the gate group on the shared pool, namespaced', () => {
-    t().hasResourceProperties('AWS::Cognito::UserPoolGroup', { GroupName: 'lightning' });
-  });
-
-  it('uses the authorisation code flow only, never implicit', () => {
-    // Implicit returns tokens in the URL fragment, where they leak into
-    // history and referrers. CDK enables it by default, so this is pinned.
-    t().hasResourceProperties('AWS::Cognito::UserPoolClient', {
-      AllowedOAuthFlows: ['code'],
-    });
-  });
-
-  it('does not put a client secret in a public SPA', () => {
-    const clients = t().findResources('AWS::Cognito::UserPoolClient');
-    for (const c of Object.values(clients)) {
-      expect(c.Properties.GenerateSecret).toBeFalsy();
-    }
   });
 });
 
