@@ -23,7 +23,11 @@ export const handler = handle(async (event: APIGatewayProxyEventV2WithJWTAuthori
         new QueryCommand({
           TableName: TALKS_TABLE,
           IndexName: 'byCollection',
-          KeyConditionExpression: 'collection = :c',
+          // `collection` is a DynamoDB reserved keyword, so it cannot appear
+          // literally in an expression — it has to come through a name
+          // placeholder or the request is rejected outright.
+          KeyConditionExpression: '#c = :c',
+          ExpressionAttributeNames: { '#c': 'collection' },
           ExpressionAttributeValues: { ':c': collection },
           ScanIndexForward: false, // newest first
         }),
@@ -43,7 +47,12 @@ export const handler = handle(async (event: APIGatewayProxyEventV2WithJWTAuthori
 async function allCollections(): Promise<string[]> {
   const { ScanCommand } = await import('@aws-sdk/lib-dynamodb');
   const { Items = [] } = await ddb.send(
-    new ScanCommand({ TableName: TALKS_TABLE, ProjectionExpression: 'collection' }),
+    new ScanCommand({
+      TableName: TALKS_TABLE,
+      // Reserved keyword again — see the query above.
+      ProjectionExpression: '#c',
+      ExpressionAttributeNames: { '#c': 'collection' },
+    }),
   );
   const names = new Set<string>(
     (process.env.INITIAL_COLLECTIONS ?? '').split(',').filter(Boolean),
