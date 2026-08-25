@@ -158,6 +158,21 @@ describe('WebStack', () => {
     });
   });
 
+  it('sets Referrer-Policy through the security behaviour, not as a custom header', () => {
+    // CloudFront rejects Referrer-Policy as a custom header outright — it is on
+    // its list of recognised security headers. Cost a failed deploy to find.
+    t().hasResourceProperties('AWS::CloudFront::ResponseHeadersPolicy', {
+      ResponseHeadersPolicyConfig: Match.objectLike({
+        SecurityHeadersConfig: Match.objectLike({
+          ReferrerPolicy: { ReferrerPolicy: 'no-referrer', Override: true },
+        }),
+        CustomHeadersConfig: Match.objectLike({
+          Items: [Match.objectLike({ Header: 'X-Robots-Tag' })],
+        }),
+      }),
+    });
+  });
+
   it('creates the gate group on the shared pool, namespaced', () => {
     t().hasResourceProperties('AWS::Cognito::UserPoolGroup', { GroupName: 'lightning' });
   });

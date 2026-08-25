@@ -86,15 +86,21 @@ export class WebStack extends cdk.Stack {
     // any ambient authority, and rendered in a sandboxed frame by the SPA.
     const deckHeaders = new cloudfront.ResponseHeadersPolicy(this, 'DeckHeaders', {
       responseHeadersPolicyName: `lightning-deck-${deployEnv}`,
+      // X-Robots-Tag is a plain custom header, but Referrer-Policy is one
+      // CloudFront recognises as a security header and refuses to accept as a
+      // custom one — it has to go through securityHeadersBehavior instead.
       customHeadersBehavior: {
         customHeaders: [
           { header: 'X-Robots-Tag', value: 'noindex, nofollow', override: true },
-          { header: 'Referrer-Policy', value: 'no-referrer', override: true },
         ],
       },
       securityHeadersBehavior: {
         contentTypeOptions: { override: true },
         frameOptions: { frameOption: cloudfront.HeadersFrameOption.SAMEORIGIN, override: true },
+        referrerPolicy: {
+          referrerPolicy: cloudfront.HeadersReferrerPolicy.NO_REFERRER,
+          override: true,
+        },
       },
     });
 
