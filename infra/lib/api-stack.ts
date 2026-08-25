@@ -11,9 +11,10 @@ import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import * as path from 'path';
 import { Construct } from 'constructs';
+import loginBrandingSettings from './login-branding.json';
 import {
   API_PATH_PREFIX,
-  BOOTSTRAP_ADMIN_EMAIL,
+  bootstrapAdminEmail,
   DeployEnv,
   DEV_ORIGIN,
   GATE_GROUP,
@@ -85,13 +86,14 @@ export class ApiStack extends cdk.Stack {
     // pages unavailable. Please contact an administrator." and no sign-in is
     // possible at all.
     //
-    // `useCognitoProvidedValues` takes Cognito's stock style rather than
-    // pinning a full settings document here, which would be several hundred
-    // lines of colour tokens to maintain for a look nobody has asked to change.
+    // The style is the one the other applications on this pool use, so signing
+    // in to lightning does not look like signing in to somewhere else. Cognito's
+    // stock style is a pale one and stands out badly beside them.
     new cognito.CfnManagedLoginBranding(this, 'LoginBranding', {
       userPoolId,
       clientId,
-      useCognitoProvidedValues: true,
+      useCognitoProvidedValues: false,
+      settings: loginBrandingSettings,
     });
 
     // The gate group. Created here rather than by hand so a fresh environment is
@@ -250,22 +252,31 @@ export class ApiStack extends cdk.Stack {
     // sub is what lets this be a constant instead of a deploy-time lookup.
     // Conditional so a re-deploy never overwrites a role changed since.
     new customresources.AwsCustomResource(this, 'SeedBootstrapAdmin', {
-      onCreate: {
+      // onUpdate rather than onCreate, because CDK falls back to onUpdate for
+      // the Create event too — whereas an onCreate-only resource does nothing
+      // at all on an update, so changing the address would silently never be
+      // written.
+      onUpdate: {
         service: 'DynamoDB',
         action: 'putItem',
+        // The address is part of the id so that changing it re-runs this.
         physicalResourceId: customresources.PhysicalResourceId.of(
-          `seed-admin-${deployEnv}`,
+          `seed-admin-${deployEnv}-${bootstrapAdminEmail(deployEnv)}`,
         ),
         parameters: {
           TableName: accessTable.tableName,
           Item: {
-            pk: { S: `USER#${BOOTSTRAP_ADMIN_EMAIL}` },
+            pk: { S: `USER#${bootstrapAdminEmail(deployEnv)}` },
             sk: { S: 'ROOT' },
             role: { S: 'admin' },
             seededAt: { S: new Date().toISOString() },
           },
+          // Never overwrite a role that has been changed since.
           ConditionExpression: 'attribute_not_exists(pk)',
         },
+        // Which means the row already exists, and that is the desired state —
+        // not a deploy failure.
+        ignoreErrorCodesMatching: 'ConditionalCheckFailedException',
       },
       policy: customresources.AwsCustomResourcePolicy.fromSdkCalls({
         resources: [accessTable.tableArn],
