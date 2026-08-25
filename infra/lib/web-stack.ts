@@ -2,22 +2,23 @@ import * as cdk from 'aws-cdk-lib';
 import * as acm from 'aws-cdk-lib/aws-certificatemanager';
 import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
 import * as origins from 'aws-cdk-lib/aws-cloudfront-origins';
-import * as cognito from 'aws-cdk-lib/aws-cognito';
 import * as route53 from 'aws-cdk-lib/aws-route53';
 import * as route53Targets from 'aws-cdk-lib/aws-route53-targets';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import * as ssm from 'aws-cdk-lib/aws-ssm';
 import { Construct } from 'constructs';
-import { DeployEnv, DEV_ORIGIN, GATE_GROUP, HOSTED_ZONES, appDomain } from './env';
+import { API_PATH_PREFIX, DeployEnv, HOSTED_ZONES, appDomain } from './env';
 
 export interface WebStackProps extends cdk.StackProps {
   deployEnv: DeployEnv;
   certificate: acm.ICertificate;
+  /** execute-api hostname of the HTTP API, fronted here under `/api/*`. */
+  apiDomainName: string;
 }
 
 /**
- * The SPA bucket, its CloudFront distribution, and this app's own Cognito
- * client on the shared pool.
+ * The SPA bucket and its CloudFront distribution, which also fronts the API so
+ * that the two are same-origin.
  */
 export class WebStack extends cdk.Stack {
   readonly bucket: s3.Bucket;
@@ -26,47 +27,11 @@ export class WebStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props: WebStackProps) {
     super(scope, id, props);
 
-    const { deployEnv, certificate } = props;
+    const { deployEnv, certificate, apiDomainName } = props;
     const isProd = deployEnv === 'prod';
     const removalPolicy = isProd ? cdk.RemovalPolicy.RETAIN : cdk.RemovalPolicy.DESTROY;
     const { hostedZoneId, zoneName } = HOSTED_ZONES[deployEnv];
     const domain = appDomain(deployEnv);
-
-    // ── Cognito ──────────────────────────────────────────────────────────────
-    // The pool is shared with nine other applications. Read it, add our own
-    // client, and change nothing else about it.
-    const userPoolId = ssm.StringParameter.valueForStringParameter(
-      this,
-      `/nakomis-infra/${deployEnv}/cognito/user-pool-id`,
-    );
-    const userPool = cognito.UserPool.fromUserPoolId(this, 'SharedPool', userPoolId);
-
-    const client = new cognito.UserPoolClient(this, 'LightningClient', {
-      userPoolClientName: `lightning-spa-${deployEnv}`,
-      userPool,
-      authFlows: { userSrp: true },
-      generateSecret: false,
-      oAuth: {
-        // Authorisation code + PKCE only. CDK's default enables the implicit
-        // grant as well, which hands tokens back in the URL fragment — they end
-        // up in history, in referrers, and in any script on the page. There is
-        // no reason a public SPA needs it.
-        flows: { authorizationCodeGrant: true, implicitCodeGrant: false },
-        scopes: [cognito.OAuthScope.OPENID, cognito.OAuthScope.EMAIL, cognito.OAuthScope.PROFILE],
-        callbackUrls: [`https://${domain}/loggedin`, `${DEV_ORIGIN}/loggedin`],
-        logoutUrls: [`https://${domain}/logout`, `${DEV_ORIGIN}/logout`],
-      },
-    });
-
-    // The gate group. Created here rather than by hand so a fresh environment is
-    // usable without anyone remembering this step — but note the group is on the
-    // *shared* pool, so the name has to stay namespaced.
-    const gateGroup = new cognito.CfnUserPoolGroup(this, 'GateGroup', {
-      userPoolId,
-      groupName: GATE_GROUP,
-      description: 'May sign in to lightning. Per-collection access lives in DynamoDB.',
-    });
-    gateGroup.node.addDependency(client);
 
     // ── SPA hosting ──────────────────────────────────────────────────────────
     this.bucket = new s3.Bucket(this, 'SpaBucket', {
@@ -104,6 +69,25 @@ export class WebStack extends cdk.Stack {
       },
     });
 
+    // API Gateway routes are `/talks`, `/me`, `/d/{token}` — the `/api` prefix
+    // exists only to pick this behaviour out at CloudFront, so it is removed
+    // before the request is forwarded.
+    const stripApiPrefix = new cloudfront.Function(this, 'StripApiPrefix', {
+      functionName: `lightning-strip-api-prefix-${deployEnv}`,
+      runtime: cloudfront.FunctionRuntime.JS_2_0,
+      comment: `Remove the ${API_PATH_PREFIX} prefix before forwarding to API Gateway`,
+      code: cloudfront.FunctionCode.fromInline(`
+function handler(event) {
+  var request = event.request;
+  var prefix = '${API_PATH_PREFIX}';
+  if (request.uri.startsWith(prefix)) {
+    request.uri = request.uri.slice(prefix.length) || '/';
+  }
+  return request;
+}
+`),
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(this.bucket, {
@@ -118,6 +102,36 @@ export class WebStack extends cdk.Stack {
         { httpStatus: 403, responseHttpStatus: 200, responsePagePath: '/index.html' },
         { httpStatus: 404, responseHttpStatus: 200, responsePagePath: '/index.html' },
       ],
+      additionalBehaviors: {
+        [`${API_PATH_PREFIX}/*`]: {
+          origin: new origins.HttpOrigin(apiDomainName, {
+            // CloudFront-to-origin is always HTTPS regardless of how the viewer
+            // arrived, so a plaintext request is only ever plaintext over the
+            // first hop.
+            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+          }),
+          // Deliberately ALLOW_ALL rather than REDIRECT_TO_HTTPS: a 301 on an
+          // API call is worse than useless. Non-GET clients drop the body on
+          // redirect, and many drop the Authorization header too, so the retry
+          // arrives unauthenticated with nothing in it. The SPA is served over
+          // HTTPS and its calls inherit that; this only affects a caller who
+          // asked for plain HTTP explicitly.
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.ALLOW_ALL,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_ALL,
+          // An API response is never the same twice, and the Authorization
+          // header must not become part of a cache key by accident.
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          // Forwards Authorization and the query string; excludes Host, which
+          // API Gateway needs to be its own.
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
+          functionAssociations: [
+            {
+              function: stripApiPrefix,
+              eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
+            },
+          ],
+        },
+      },
       domainNames: [domain],
       certificate,
       priceClass: cloudfront.PriceClass.PRICE_CLASS_100,
@@ -141,15 +155,7 @@ export class WebStack extends cdk.Stack {
     });
 
     // ── Handles ──────────────────────────────────────────────────────────────
-    const loginDomain = ssm.StringParameter.valueForStringParameter(
-      this,
-      `/nakomis-infra/${deployEnv}/cognito/login-domain`,
-    );
-
     const params: Array<[string, string, string]> = [
-      ['ClientIdParam', `/lightning/${deployEnv}/cognito/client-id`, client.userPoolClientId],
-      ['UserPoolIdParam', `/lightning/${deployEnv}/cognito/user-pool-id`, userPoolId],
-      ['LoginDomainParam', `/lightning/${deployEnv}/cognito/login-domain`, loginDomain],
       ['BucketNameParam', `/lightning/${deployEnv}/web/bucket-name`, this.bucket.bucketName],
       ['DistributionIdParam', `/lightning/${deployEnv}/web/distribution-id`, this.distribution.distributionId],
     ];

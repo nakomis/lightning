@@ -22,6 +22,14 @@ export const appDomain = (deployEnv: DeployEnv): string =>
 
 export const appOrigin = (deployEnv: DeployEnv): string => `https://${appDomain(deployEnv)}`;
 
+/**
+ * The SPA reaches the API through its own CloudFront distribution rather than
+ * the execute-api hostname, so the two are same-origin and no preflight is in
+ * the path of every call. CloudFront strips this prefix before the request
+ * reaches API Gateway, which therefore still sees `/talks`, not `/api/talks`.
+ */
+export const API_PATH_PREFIX = '/api';
+
 /** The Vite dev server, allowed through CORS so the SPA can be run locally. */
 export const DEV_ORIGIN = 'http://localhost:5173';
 
