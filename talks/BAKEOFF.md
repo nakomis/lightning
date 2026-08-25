@@ -52,6 +52,29 @@ None of this is fixable by prompting. It is what diffusion does with notation.
   cosine similarity are the same operation. That is what
   `ORDER BY embedding <=> query_vec` is doing, and it is the point of the slide.
 
+## The revision that actually mattered
+
+The first SVG drew the textbook picture: three squares on the three sides of one
+triangle. Correct, and useless for getting to 1024 — it says "add another
+square" without saying why you may keep adding them.
+
+Martin's framing is the one that generalises, and it is the point of the slide:
+
+> the hypotenuse of the first triangle `√(x² + y²)` **becomes one of the
+> perpendicular sides** [of the next], so `d² = (√(x² + y²))² + z² = x² + y² + z²`
+
+So the figure is now the nested construction, not the squares one. Triangle 1
+lies in plane 1. Its hypotenuse is drawn once, in accent, and **never redrawn** —
+a new plane stands on that same line, perpendicular to the first, and triangle 2
+is built on it. The label on that line changes from "hypotenuse" to "…now a leg"
+while the line itself does not move. That relabel is the whole slide.
+
+Numbers chosen so both steps are exact and checkable on screen:
+`120, 90 → 150`, then `150, 200 → 250`. Two Pythagorean triples in a chain.
+
+Act 3 then just unrolls the recursion — `dₖ² = dₖ₋₁² + xₖ²` — 1024 times, which
+is now an obvious consequence rather than a claim.
+
 ## Verdict
 
 Use the SVG for the explanation. If you want the video, use the last three

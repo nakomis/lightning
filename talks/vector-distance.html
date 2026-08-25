@@ -67,6 +67,11 @@
   .l.acc { stroke:var(--signal); stroke-width:2; }
   .arrow { fill:var(--muted); stroke:none; }
   .eq    { fill:var(--ink); font-family:var(--f-mono); font-size:15px; font-weight:500; }
+  .plane { fill:var(--primary); fill-opacity:.07; stroke:var(--primary); stroke-width:1; stroke-opacity:.45; }
+  .shared{ stroke-width:3.5; }
+  .node  { fill:var(--signal); }
+  .ra    { fill:none; stroke:var(--muted); stroke-width:1.2; }
+  .l.t1  { stroke:var(--ink); stroke-width:2; }
   .eq .op { fill:var(--muted); }
   .hl    { fill:var(--signal); }
   .dim   { fill:var(--primary); }
@@ -96,27 +101,32 @@
   .run .a1-col   { animation:riseIn .40s calc(2.15s + var(--i)*.055s) both; }
   .run .a1-brack { animation:fadeIn .40s 2.75s both; }
   .run .a1-note  { animation:fadeIn .45s 3.20s both; }
-  .run .act1     { animation:fadeOut .40s 4.75s forwards; }
+  .run .act1     { animation:fadeOut .40s 4.35s forwards; }
 
-  /* ================= ACT 2 : 2D -> 3D  (5.0 - 10.2s) =================== */
-  .run .a2-tri   { animation:drawIn .70s 5.15s both; }
-  .run .a2-sq1   { animation:popIn .40s 5.90s both; transform-origin:center; }
-  .run .a2-sq2   { animation:popIn .40s 6.10s both; transform-origin:center; }
-  .run .a2-sqh   { animation:popIn .45s 6.35s both; transform-origin:center; }
-  .run .a2-eq2   { animation:riseIn .40s 6.75s both; }
-  .run .a2-axis3 { animation:drawIn .55s 7.55s both; }
-  .run .a2-sq3   { animation:popIn .45s 8.05s both; transform-origin:center; }
-  .run .a2-eq3   { animation:riseIn .45s 8.45s both; }
-  .run .a2-lab   { animation:fadeIn .40s 8.85s both; }
-  .run .act2     { animation:fadeOut .40s 9.95s forwards; }
+  /* ============ ACT 2 : the hypotenuse becomes a leg  (4.6 - 10.6s) ==== */
+  .run .a2-floor  { animation:fadeIn .45s 4.70s both; }
+  .run .a2-t1     { animation:drawIn .65s 5.00s both; }
+  .run .a2-t1lab  { animation:fadeIn .35s 5.60s both; }
+  .run .a2-share  { animation:fadeIn .40s 6.05s both; }
+  .run .a2-asHyp  { animation:fadeIn .35s 6.25s both; }
+  /* The relabel is the beat: same line, same place, new job. */
+  .run .a2-asHyp  { animation:fadeIn .35s 6.25s both, fadeOut .30s 7.05s both; }
+  .run .a2-asLeg  { animation:fadeIn .35s 7.25s both; }
+  .run .a2-plane2 { animation:fadeIn .50s 7.45s both; }
+  .run .a2-legz   { animation:drawIn .55s 7.95s both; }
+  .run .a2-hyp3   { animation:drawIn .60s 8.50s both; }
+  .run .a2-eqA    { animation:riseIn .40s 5.90s both; }
+  .run .a2-hand   { animation:riseIn .45s 6.95s both; }
+  .run .a2-eqB    { animation:riseIn .45s 8.70s both; }
+  .run .act2      { animation:fadeOut .40s 10.35s forwards; }
 
-  /* ================= ACT 3 : -> 1024D  (10.2 - 15.0s) ================== */
-  .run .a3-tile  { animation:fadeIn .30s calc(10.35s + var(--i)*.035s) both; }
-  .run .a3-eqn   { animation:riseIn .50s 11.30s both; }
-  .run .a3-count { animation:fadeIn .35s 11.30s both; }
-  .run .a3-rule  { animation:fadeIn .40s 12.55s both; }
-  .run .a3-cos   { animation:riseIn .50s 12.75s both; }
-  .run .a3-op    { animation:riseIn .45s 13.60s both; }
+  /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
+  .run .a3-tile  { animation:fadeIn .30s calc(10.70s + var(--i)*.030s) both; }
+  .run .a3-count { animation:fadeIn .35s 11.60s both; }
+  .run .a3-rec   { animation:riseIn .45s 10.80s both; }
+  .run .a3-eqn   { animation:riseIn .45s 12.40s both; }
+  .run .a3-rule  { animation:fadeIn .40s 13.30s both; }
+  .run .a3-cos   { animation:riseIn .50s 13.50s both; }
 
   @media (prefers-reduced-motion: reduce) {
     .anim { opacity:1 !important; }
@@ -204,81 +214,97 @@
 
   <!-- ============================ ACT 2 ============================ -->
   <g class="act2">
-    <!-- Squares first, triangle last, so the figure sits on top of its own
-         construction rather than being buried by it. -->
+    <!-- The nested construction, not the three-squares picture. Triangle 1 lies
+         in the floor plane; its HYPOTENUSE is then reused as a LEG of triangle 2,
+         which stands in a new plane perpendicular to the first. That handoff is
+         the whole idea — it is what makes the n-dimensional case obvious rather
+         than asserted.
 
-    <!-- square on leg 1 (below the base) -->
-    <g class="a2-sq1 anim tr">
-      <rect class="box pri" x="170" y="250" width="120" height="120"/>
-      <text class="lab" x="230" y="316" text-anchor="middle">Δ₁² = 14400</text>
+         Axonometric projection: X right, Y into the page, Z up.
+         x=120, y=90 -> 150   then   150, z=200 -> 250.  Both exact. -->
+
+    <!-- the two planes -->
+    <path class="plane a2-floor anim" d="M133.2 323.2 L403.2 323.2 L277.2 407.2 L7.2 407.2 Z"/>
+    <text class="lab a2-floor anim" x="292" y="404">plane 1</text>
+
+    <path class="plane a2-plane2 anim" d="M138.4 358.6 L251.4 420.2 L251.4 128.6 L138.4 67.0 Z"/>
+    <text class="lab a2-plane2 anim" x="146" y="60">plane 2 ⟂ plane 1</text>
+
+    <!-- ---- triangle 1, in the floor ---- -->
+    <g class="a2-t1 anim" style="--len:414">
+      <path class="l t1" style="stroke-dasharray:414" d="M150 340 L294 340 L229.2 383.2 Z"/>
     </g>
-    <!-- square on leg 2 (right of the upright) -->
-    <g class="a2-sq2 anim tr">
-      <rect class="box pri" x="290" y="160" width="90" height="90"/>
-      <text class="lab" x="335" y="234" text-anchor="middle">Δ₂² = 8100</text>
+    <text class="lab a2-t1lab anim" x="222" y="334" text-anchor="middle">x = 120</text>
+    <text class="lab a2-t1lab anim" x="272" y="372">y = 90</text>
+    <path class="ra a2-t1lab anim" d="M281.6 340 l-8.6 5.8 l-6.5 -5.8"/>
+
+    <!-- ---- the shared edge: drawn once, and never redrawn ---- -->
+    <path class="l acc shared a2-share anim" d="M150 340 L229.2 383.2"/>
+    <circle class="node a2-share anim" cx="150" cy="340" r="3.5"/>
+    <circle class="node a2-share anim" cx="229.2" cy="383.2" r="3.5"/>
+
+    <!-- ...first described as a hypotenuse... -->
+    <g class="a2-asHyp anim">
+      <text class="lab hl" x="126" y="381" text-anchor="end">hypotenuse</text>
+      <text class="mono hl" x="126" y="398" text-anchor="end">√(120² + 90²) = 150</text>
     </g>
-    <!-- square on the hypotenuse: anchored at C, width running back along C→A,
-         which puts it on the far side of AC from B. -->
-    <g class="a2-sqh anim tr">
-      <rect class="box acc" x="290" y="160" width="150" height="150"
-            transform="rotate(143.13 290 160)"/>
-      <text class="lab hl" x="185" y="145" text-anchor="middle">d² = 22500</text>
+    <!-- ...then, without moving, as a leg. -->
+    <g class="a2-asLeg anim">
+      <text class="lab hl" x="126" y="381" text-anchor="end">…now a leg</text>
+      <text class="mono hl" x="126" y="398" text-anchor="end">150</text>
     </g>
 
-    <!-- third axis, projected down-right so it clears the Δ₁² square -->
-    <g class="a2-sq3 anim tr">
-      <path class="box acc" d="M290 250 L368 314 L368 394 L290 330 Z"/>
-      <text class="lab" x="329" y="338" text-anchor="middle">Δ₃²</text>
+    <!-- ---- triangle 2, standing in plane 2 on that same edge ---- -->
+    <g class="a2-legz anim" style="--len:240">
+      <path class="l" style="stroke-dasharray:240" d="M229.2 383.2 L229.2 143.2"/>
     </g>
-    <g class="a2-axis3 anim" style="--len:101">
-      <path class="l" style="stroke-dasharray:101" d="M290 250 L368 314"/>
+    <text class="lab a2-legz anim" x="236" y="266">z = 200</text>
+    <path class="ra a2-legz anim" d="M229.2 371.2 h-11 v11"/>
+
+    <g class="a2-hyp3 anim" style="--len:213">
+      <path class="l acc" style="stroke-dasharray:213" d="M150 340 L229.2 143.2"/>
     </g>
-    <text class="lab a2-axis3 anim" x="374" y="300">Δ₃</text>
+    <text class="mono a2-hyp3 anim hl" x="150" y="228" text-anchor="end">d = 250</text>
 
-    <!-- the triangle itself, on top -->
-    <g class="a2-tri anim" style="--len:360">
-      <path class="l acc" style="stroke-dasharray:360" d="M170 250 L290 250 L290 160 Z"/>
-    </g>
-    <text class="lab a2-tri anim" x="230" y="264" text-anchor="middle">Δ₁ = 120</text>
-    <text class="lab a2-tri anim" x="296" y="180">Δ₂ = 90</text>
-    <text class="lab a2-tri anim hl" x="243" y="216" text-anchor="middle">d = 150</text>
+    <!-- ---- the algebra ---- -->
+    <text class="eq a2-eqA anim" x="470" y="140">plane 1</text>
+    <text class="eq a2-eqA anim" x="470" y="168">d₂ = √(x² + y²) = 150</text>
 
-    <text class="eq a2-eq2 anim" x="470" y="150">2D</text>
-    <text class="eq a2-eq2 anim" x="510" y="150">d² = Δ₁² + Δ₂²</text>
-    <text class="lab a2-eq2 anim" x="510" y="170">14400 + 8100 = 22500 = 150²</text>
+    <text class="s a2-hand anim" x="470" y="206">The hypotenuse does not stay a hypotenuse.</text>
+    <text class="s a2-hand anim" x="470" y="226">Stand a new plane on it, perpendicular to the first,</text>
+    <text class="s a2-hand anim" x="470" y="246">and it becomes one of the two <tspan class="hl">perpendicular sides</tspan>.</text>
 
-    <text class="eq a2-eq3 anim" x="470" y="230">3D</text>
-    <text class="eq a2-eq3 anim" x="510" y="230">d² = Δ₁² + Δ₂² + Δ₃²</text>
-    <text class="lab a2-lab anim" x="510" y="252">one more axis · one more square · one more term</text>
-    <text class="s a2-lab anim" x="510" y="292">Nothing about the identity cares how many axes there are.</text>
-    <text class="s a2-lab anim" x="510" y="312">It was never a fact about triangles — it is a fact about</text>
-    <text class="s a2-lab anim" x="510" y="332">perpendicular components adding in quadrature.</text>
+    <text class="eq a2-eqB anim" x="470" y="290">plane 2</text>
+    <text class="eq a2-eqB anim" x="470" y="318">d₃² = d₂² + z²</text>
+    <text class="eq a2-eqB anim" x="470" y="346">    = (√(x² + y²))² + z²</text>
+    <text class="eq a2-eqB anim hl" x="470" y="374">    = x² + y² + z²</text>
+    <text class="lab a2-eqB anim" x="470" y="396">14400 + 8100 + 40000 = 62500 = 250²</text>
   </g>
 
   <!-- ============================ ACT 3 ============================ -->
   <g class="act3">
-    <!-- 32 x 32 = 1024 tiles, drawn for real -->
+    <!-- 32 x 32 = 1024, drawn in full. Sqrt(1024) = 32, so the grid is also
+         literally the answer when every component is 1. -->
     <g id="tiles"></g>
     <text class="lab a3-count anim" id="counter" x="208" y="392" text-anchor="middle">1024 terms</text>
 
-    <text class="eq a3-eqn anim" x="440" y="130">nD</text>
-    <text class="eq a3-eqn anim" x="480" y="130">d(a,b) = √( Σ (aᵢ − bᵢ)² )</text>
-    <text class="lab a3-eqn anim" x="592" y="112">1024</text>
-    <text class="lab a3-eqn anim" x="588" y="146">i = 1</text>
-    <text class="s a3-eqn anim" x="480" y="172">Euclidean distance — Pythagoras, 1024 terms deep.</text>
+    <text class="s a3-rec anim" x="440" y="96">Keep going. Every new dimension does the same thing:</text>
+    <text class="eq a3-rec anim" x="460" y="130">d₂² = x₁² + x₂²</text>
+    <text class="eq a3-rec anim" x="460" y="158">d₃² = d₂² + x₃²</text>
+    <text class="eq a3-rec anim" x="460" y="186">d₄² = d₃² + x₄²</text>
+    <text class="lab a3-rec anim" x="460" y="208">⋮</text>
+    <text class="eq a3-rec anim hl" x="460" y="236">dₖ² = dₖ₋₁² + xₖ²</text>
+    <text class="s a3-rec anim" x="640" y="236">← the previous distance, as a leg</text>
 
-    <line class="l a3-rule anim" x1="440" y1="204" x2="940" y2="204"/>
+    <text class="s a3-eqn anim" x="440" y="278">Unroll it 1024 times and the nesting collapses:</text>
+    <text class="eq a3-eqn anim" x="460" y="316">d(a,b) = √( Σ (aᵢ − bᵢ)² )</text>
+    <text class="lab a3-eqn anim" x="572" y="298">1024</text>
+    <text class="lab a3-eqn anim" x="568" y="332">i = 1</text>
 
-    <text class="eq a3-cos anim" x="440" y="240">Because ‖a‖ = ‖b‖ = 1 :</text>
-    <text class="eq a3-cos anim hl" x="480" y="276">d² = 2(1 − cos θ)</text>
-    <text class="s a3-cos anim" x="480" y="300">Distance and angle are the same measurement wearing</text>
-    <text class="s a3-cos anim" x="480" y="318">different clothes. Rank by one, you have ranked by the other.</text>
-
-    <g class="a3-op anim">
-      <rect class="box acc" x="440" y="340" width="500" height="60" rx="5"/>
-      <text class="mono" x="460" y="366">ORDER BY embedding &lt;=&gt; query_vec LIMIT 10</text>
-      <text class="s"    x="460" y="386">pgvector's cosine-distance operator — this is the whole of semantic search</text>
-    </g>
+    <line class="l a3-rule anim" x1="440" y1="352" x2="940" y2="352"/>
+    <text class="eq a3-cos anim hl" x="440" y="382">d² = 2(1 − cos θ)</text>
+    <text class="s a3-cos anim" x="620" y="374">for unit vectors — so ranking by distance</text>
+    <text class="s a3-cos anim" x="620" y="392">is ranking by angle:  ORDER BY v &lt;=&gt; q</text>
   </g>
 </svg>
 </div>
