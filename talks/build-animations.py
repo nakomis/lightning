@@ -276,7 +276,7 @@ def build_scenes():
         markup = render_tex(namespace(act_markup(src, act), act, n))
         reduced = reduced.replace('.run .act1, .run .act2 { opacity:0 !important; }', '')
         # The tile grid's --i is set in JS (0..31), not in the markup.
-        dur = duration(rules, markup + ('--i:62' if 'id="tiles"' in markup else ''))
+        dur = duration(rules, markup + ('--i:65' if 'id="tiles"' in markup else ''))
         html = STANDALONE.format(
             title=title, eyebrow=eyebrow, blurb=blurb,
             css_head=head.rstrip() + '\n' + SUB_CSS, speed_css=SPEED_CSS,
