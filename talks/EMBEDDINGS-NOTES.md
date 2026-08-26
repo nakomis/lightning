@@ -1,6 +1,6 @@
 # Embeddings — speaker notes
 
-Eleven slides, roughly 12–15 minutes at a comfortable pace. Every animated slide
+Eleven slides, nine of them animated, roughly 12–15 minutes at a comfortable pace. Every animated slide
 replays with **R**; **←/→** move, **Home/End** jump, **F** is fullscreen. The
 speed slider defaults to 0.33× — nudge it up if the room is quick.
 
@@ -84,7 +84,7 @@ Accuracy, if challenged:
 > happened to be useful."
 
 If someone objects that this makes embeddings meaningless — good, that is the
-right instinct, and slide 10 answers it. The *axes* mean nothing. The
+right instinct, and slide 11 answers it. The *axes* mean nothing. The
 *geometry* means a great deal.
 
 ---
@@ -97,11 +97,38 @@ Six tokens in, 1024 numbers out, and the model — `mxbai-embed-large` — runs
 locally via Ollama. Worth saying plainly: **nothing leaves the machine.**
 
 The detail that matters for later: the vector is **L2-normalised**, so every
-message lands on the unit hypersphere. Say it once now; slide 7 cashes it in.
+message lands on the unit hypersphere. Say it once now; slides 5 and 7 cash it in.
 
 ---
 
-## 5 — The hypotenuse becomes a leg *(animated)*
+## 5 — Similarity becomes distance *(animated)*
+
+**This is the bridge slide.** Without it, the next three slides look like a maths
+lecture that wandered in. Say why you are about to talk about triangles.
+
+Let the sphere and both clusters land first. Then:
+
+> "Every vector is unit length — that L2-normalising from the last slide — so
+> every message in your history sits somewhere on this one surface. The radius
+> never varies. The only thing that can vary is the angle."
+
+Walk the two chords:
+
+- **Short chord, 24°.** Two messages about the same thing. Close together.
+- **Long chord, 90°.** Perpendicular. **cos θ = 0** — literally nothing in
+  common. Worth pausing on: orthogonal is the mathematical form of "unrelated".
+
+**The line that earns the next slide:**
+
+> "So 'how similar are these two messages' has just become 'how far apart are
+> these two points'. And that is a question about triangles."
+
+Note the sphere is drawn as a 2-D shadow — say so if anyone looks sceptical. The
+real thing has 1024 axes and cannot be drawn. The chord lengths shown are exact
+for the angles shown: 2·sin(θ/2), which is the same √(2(1−cos θ)) that lands on
+slide 7.
+
+## 6 — The hypotenuse becomes a leg *(animated)*
 
 This is the slide that earns the whole talk. Do not rush it.
 
@@ -121,7 +148,7 @@ Both steps are exact: 3-4-5 scaled twice. If anyone checks, 14400 + 8100 +
 
 ---
 
-## 6 — Unrolled 1024 times *(animated)*
+## 7 — Unrolled 1024 times *(animated)*
 
 The recursion, written down: `dₖ² = dₖ₋₁² + xₖ²`. Unroll it and the nesting
 collapses into one sum.
@@ -138,7 +165,7 @@ Then the payoff, and slow down here:
 
 ---
 
-## 7 — A card is a point *(animated)*
+## 8 — A card is a point *(animated)*
 
 Light relief, and a change of register. The King of Hearts goes in, 1024
 numbers come out.
@@ -147,7 +174,7 @@ numbers come out.
 
 ---
 
-## 8 — Arithmetic on positions *(animated)*
+## 9 — Arithmetic on positions *(animated)*
 
 Do the sum out loud for one column so they see it is not hand-waving:
 `0.44 − (−0.21) + 0.07 = 0.72`. Component by component, all 1024 of them.
@@ -158,7 +185,7 @@ Pause there. Let someone in the room say it.
 
 ---
 
-## 9 — Gender is a direction *(animated)*
+## 10 — Gender is a direction *(animated)*
 
 The Queen. But the reveal is not the point — **the parallelogram is.**
 
@@ -179,7 +206,7 @@ that already half-suspects it.
 
 ---
 
-## 10 — What this buys you *(text)*
+## 11 — What this buys you *(text)*
 
 Bring it home:
 
@@ -201,7 +228,7 @@ And the callback to slide 3:
 768 and 1536 are common. Nothing in the maths cares.
 
 **"Isn't cosine similarity different from Euclidean distance?"** — for
-normalised vectors they are monotonically related, exactly as slide 6 shows. For
+normalised vectors they are monotonically related, exactly as slides 5 and 7 show. For
 unnormalised vectors they genuinely differ, and then it matters which you pick.
 
 **"Does this replace keyword search?"** — no, and do not claim it does. Slide 2

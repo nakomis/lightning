@@ -196,18 +196,19 @@ def _scene_classes(head):
     return '\n'.join(keep)
 
 
+# Slides are keyed on scene SLUG, not position: index-based ordering silently
+# duplicated a scene twice while renumbering, and a wrong slug fails loudly.
 SLIDES = [
     ('title', 'Embeddings', 'A short tour of the one idea that makes semantic search work.', None),
-    ('scene', None, None, 1),
-    ('scene', None, None, 2),
-    ('scene', None, None, 3),
-    ('scene', None, None, 4),
-    ('scene', None, None, 5),
-    ('lead', 'So far: distance', 'Two messages are similar when their points are close. '
-     'That is the whole of recall — and it is Pythagoras, 1024 terms deep.', None),
-    ('scene', None, None, 6),
-    ('scene', None, None, 7),
-    ('scene', None, None, 8),
+    ('scene', None, None, 'letters-or-meaning'),
+    ('scene', None, None, 'if-you-asked-a-human'),
+    ('scene', None, None, 'text-to-vector'),
+    ('scene', None, None, 'similarity-is-distance'),
+    ('scene', None, None, 'hypotenuse-becomes-leg'),
+    ('scene', None, None, 'unrolled-1024-times'),
+    ('scene', None, None, 'a-card-is-a-point'),
+    ('scene', None, None, 'arithmetic-on-positions'),
+    ('scene', None, None, 'gender-is-a-direction'),
     ('lead', 'What this buys you', 'Meaning becomes geometry. Similarity becomes distance. '
      'Search becomes <code>ORDER BY</code>. Nothing in the model was ever told what a '
      'queen is, or what a cat is — only where things sit relative to each other.', None),
@@ -217,7 +218,10 @@ SLIDES = [
 def build_deck(scenes, here, rate, scenes_ref=()):
     global SCENES_REF
     SCENES_REF = scenes_ref
-    by_n = {s['n']: s for s in scenes}
+    by_slug = {s['slug']: s for s in scenes}
+    unused = set(by_slug) - {n for k, _, _, n in SLIDES if k == 'scene'}
+    if unused:
+        print(f'  note: scenes built but not in the deck: {sorted(unused)}')
     head = scenes[0]['head']
 
     scene_css = _scene_classes(head)
@@ -258,7 +262,9 @@ def build_deck(scenes, here, rate, scenes_ref=()):
             out.append(f'<section class="slide">\n  <div class="eyebrow">{title}</div>\n'
                        f'  <p class="lead">{body}</p>\n</section>\n')
         else:
-            s = by_n[n]
+            if n not in by_slug:
+                raise SystemExit(f'deck references unknown scene slug: {n!r}')
+            s = by_slug[n]
             out.append(
                 f'<section class="slide">\n'
                 f'  <div class="eyebrow">{s["eyebrow"]}</div>\n'

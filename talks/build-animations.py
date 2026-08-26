@@ -26,6 +26,9 @@ SCENES = [
     ('vector-distance.html', 1, 'text-to-vector',          'What gets stored',
      'From text to a vector',
      'Every message becomes one point in a 1024-dimensional space.'),
+    ('why-distance.html',    1, 'similarity-is-distance',  'Why any of this matters',
+     'Similarity becomes distance',
+     'Everything lands on one sphere, so "how similar" turns into "how far apart".'),
     ('vector-distance.html', 2, 'hypotenuse-becomes-leg',  'Why it generalises',
      'The hypotenuse becomes a leg',
      'Stand a new plane on it and the old distance is just another side.'),
@@ -234,7 +237,7 @@ def build_scenes():
             footer=FOOTER if fname == 'card-analogy.html' else '')
         p = OUT / f'{n:02d}-{slug}.html'
         p.write_text(html)
-        out.append(dict(n=n, path=p, head=head, rules=rules, markup=markup,
+        out.append(dict(n=n, slug=slug, path=p, head=head, rules=rules, markup=markup,
                         viewbox=viewbox(src), title=title, eyebrow=eyebrow,
                         blurb=blurb, dur=dur, src=fname,
                         tiles='id="tiles"' in markup, aria=aria(src)))

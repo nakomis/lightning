@@ -1,0 +1,195 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Why distance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+
+  :root {
+    --ground:#F1F0EC; --surface:#FFFFFF; --sunk:#E5E4DF;
+    --ink:#171B24; --muted:#656B7A; --line:#D2D1CB;
+    --primary:#4C6285; --on-primary:#FFF;
+    --signal:#1B62D6; --miss:#B02A1E; --hit:#1B7F4B; --signal-soft:#DCE7FA;
+    --f-display:"Bricolage Grotesque",system-ui,sans-serif;
+    --f-body:"Public Sans",system-ui,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --u:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+      --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+      --primary:#93A9C9; --on-primary:#12141A;
+      --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+    --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+    --primary:#93A9C9; --on-primary:#12141A;
+    --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; background:var(--ground); color:var(--ink);
+    font-family:var(--f-body);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--u)*1.5); padding:calc(var(--u)*3);
+  }
+  header { text-align:center; }
+  .eyebrow {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--signal); margin-bottom:calc(var(--u)*.6);
+  }
+  h1 { font-family:var(--f-display); font-size:calc(var(--u)*3.2); margin:0; font-weight:800; letter-spacing:-.02em; }
+  .stage { width:100%; max-width:980px; }
+  svg { width:100%; height:auto; display:block; }
+  .controls { display:flex; gap:calc(var(--u)*.6); align-items:center; font-family:var(--f-mono); font-size:calc(var(--u)*1.15); color:var(--muted); }
+  button {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15);
+    background:transparent; color:var(--muted); border:1px solid var(--line);
+    border-radius:4px; padding:calc(var(--u)*.35) calc(var(--u)*.9); cursor:pointer;
+  }
+  button:hover { color:var(--ink); border-color:var(--muted); }
+  button:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+  /* ---- diagram idiom, same as the deck ---- */
+  .box   { fill:var(--surface); stroke:var(--line); stroke-width:1.5; }
+  .box.pri { stroke:var(--primary); }
+  .box.acc { stroke:var(--signal); }
+  .t     { fill:var(--ink); font-family:var(--f-body); font-size:13px; font-weight:600; }
+  .s     { fill:var(--muted); font-family:var(--f-mono); font-size:10.5px; }
+  .mono  { fill:var(--ink); font-family:var(--f-mono); font-size:12px; }
+  .lab   { fill:var(--muted); font-family:var(--f-mono); font-size:10px; }
+  .l     { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .l.acc { stroke:var(--signal); stroke-width:2; }
+  .arrow { fill:var(--muted); stroke:none; }
+  .eq    { fill:var(--ink); font-family:var(--f-mono); font-size:15px; font-weight:500; }
+  .plane { fill:var(--primary); fill-opacity:.07; stroke:var(--primary); stroke-width:1; stroke-opacity:.45; }
+  .shared{ stroke-width:3.5; }
+  .node  { fill:var(--signal); }
+  .ra    { fill:none; stroke:var(--muted); stroke-width:1.2; }
+  .l.t1  { stroke:var(--ink); stroke-width:2; }
+  .eq .op { fill:var(--muted); }
+  .hl    { fill:var(--signal); }
+  .dim   { fill:var(--primary); }
+
+  /* Every animated element is invisible until the timeline reaches it, so a
+     still frame of the finished state is never what you see first. */
+  .anim { opacity:0; transform-box:fill-box; transform-origin:center; }
+  /* Fill-mode is written into every shorthand below rather than set here:
+     an `animation:` shorthand resets any longhand that precedes it, so a
+     separate animation-fill-mode rule is silently discarded. */
+  .run .anim { animation-timing-function:cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes fadeOut { from{opacity:1} to{opacity:0} }
+  @keyframes riseIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes drawIn { from{opacity:0; stroke-dashoffset:var(--len)} to{opacity:1; stroke-dashoffset:0} }
+  @keyframes growUp { from{opacity:0; transform:scaleY(0)} to{opacity:1; transform:scaleY(1)} }
+  @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
+
+  .anim.tr { transform-box:fill-box; }
+  .sphere { fill:none; stroke:var(--line); stroke-width:1.5; }
+  .sphere.inner { stroke-dasharray:3 5; stroke-opacity:.55; }
+  .dot    { stroke:var(--ground); stroke-width:1.5; }
+  .dot.ca { fill:var(--signal); }
+  .dot.cb { fill:var(--ground); stroke:var(--primary); stroke-width:2.5; }
+  .near   { stroke:var(--hit);  stroke-width:3; fill:none; }
+  .far    { stroke:var(--miss); stroke-width:3; fill:none; }
+  .arc    { fill:none; stroke-width:2; stroke-dasharray:3 3; }
+
+  /* ============ ACT 1 : why distance  (0 - 7.4s) ======================== */
+  .run .a1-ball  { animation:fadeIn .50s .10s both; }
+  .run .a1-ca    { animation:popIn .30s calc(.70s + var(--i)*.09s) both; }
+  .run .a1-calab { animation:fadeIn .35s 1.15s both; }
+  .run .a1-cb    { animation:popIn .30s calc(1.35s + var(--i)*.09s) both; }
+  .run .a1-cblab { animation:fadeIn .35s 1.80s both; }
+  .run .a1-near  { animation:drawIn .55s 2.30s both; }
+  .run .a1-nlab  { animation:riseIn .40s 2.75s both; }
+  .run .a1-far   { animation:drawIn .70s 3.75s both; }
+  .run .a1-flab  { animation:riseIn .40s 4.35s both; }
+  .run .a1-pay   { animation:riseIn .50s 5.35s both; }
+  .run .a1-why   { animation:fadeIn .50s 6.35s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim { opacity:1 !important; }
+    .run .anim { animation:none !important both; }
+    
+  }
+</style>
+
+<header>
+  <div class="eyebrow">Why any of this matters</div>
+  <h1>Similarity becomes distance</h1>
+</header>
+
+<div class="stage">
+<svg id="fig" viewBox="0 0 1000 470" role="img"
+     aria-label="A two-dimensional shadow of the unit hypersphere. Every message is L2-normalised so it lands on the surface. Messages about one subject cluster together; messages about another cluster elsewhere. Two points in the same cluster are 21 degrees apart, a chord of 0.36. Two points in different clusters are 127 degrees apart, a chord of 1.79. Because the radius is fixed, distance and angle are the same fact.">
+  <g class="act1">
+    <g class="a1-ball anim">
+      <circle class="sphere" cx="290" cy="250" r="150"/>
+      <ellipse class="sphere inner" cx="290" cy="250" rx="150" ry="46"/>
+      <ellipse class="sphere inner" cx="290" cy="250" rx="46" ry="150"/>
+      <text class="lab" x="290" y="424" text-anchor="middle">the unit hypersphere — a 2-D shadow of 1024</text>
+    </g>
+
+    <circle class="dot ca a1-ca anim" style="--i:0" cx="151.5" cy="229.1" r="5.5"/>
+    <circle class="dot ca a1-ca anim" style="--i:1" cx="150.4" cy="260.5" r="5.5"/>
+    <circle class="dot ca a1-ca anim" style="--i:2" cx="155.8" cy="291.3" r="5.5"/>
+    <circle class="dot ca a1-ca anim" style="--i:3" cx="167.6" cy="320.4" r="5.5"/>
+    <text class="s a1-calab anim hl" x="138" y="358" text-anchor="end">messages about cats</text>
+
+    <circle class="dot cb a1-cb anim" style="--i:0" cx="320.9" cy="101.5" r="5.5"/>
+    <circle class="dot cb a1-cb anim" style="--i:1" cx="289.5" cy="100.4" r="5.5"/>
+    <circle class="dot cb a1-cb anim" style="--i:2" cx="258.7" cy="105.8" r="5.5"/>
+    <circle class="dot cb a1-cb anim" style="--i:3" cx="229.6" cy="117.6" r="5.5"/>
+    <text class="s a1-cblab anim" x="276" y="72" text-anchor="middle">messages about Docker</text>
+
+    <!-- same cluster: 21 degrees, chord 0.36 -->
+    <g class="a1-near anim" style="--len:62">
+      <path class="near" style="stroke-dasharray:62" d="M150.4 260.5 L167.6 320.4"/>
+    </g>
+    <g class="a1-nlab anim">
+      <text class="mono hit" x="138" y="294" text-anchor="end">0.42</text>
+    </g>
+
+    <!-- different clusters: 127 degrees, chord 1.79 -->
+    <g class="a1-far anim" style="--len:212">
+      <path class="far" style="stroke-dasharray:212" d="M152.3 276.0 L274.0 102.3"/>
+    </g>
+    <g class="a1-flab anim">
+      <text class="mono miss" x="243" y="189" text-anchor="middle">1.41</text>
+    </g>
+
+    <!-- readouts -->
+    <g class="a1-nlab anim">
+      <rect class="box" x="580" y="120" width="380" height="70" rx="5"/>
+      <circle class="dot ca" cx="606" cy="146" r="5.5"/>
+      <circle class="dot ca" cx="624" cy="146" r="5.5"/>
+      <text class="t"    x="646" y="151">same subject</text>
+      <text class="mono hit" x="944" y="151" text-anchor="end">θ = 24°</text>
+      <text class="s"    x="606" y="176">a short chord, and a narrow angle</text>
+    </g>
+    <g class="a1-flab anim">
+      <rect class="box" x="580" y="206" width="380" height="70" rx="5"/>
+      <circle class="dot ca" cx="606" cy="232" r="5.5"/>
+      <circle class="dot cb" cx="624" cy="232" r="5.5"/>
+      <text class="t"    x="646" y="237">nothing in common</text>
+      <text class="mono miss" x="944" y="237" text-anchor="end">θ = 90°</text>
+      <text class="s"    x="606" y="262">perpendicular — cos θ = 0, nothing shared</text>
+    </g>
+
+    <text class="eq a1-pay anim hl" x="580" y="322">similar → close → small angle</text>
+    <text class="s a1-pay anim" x="580" y="348">Every vector is unit length, so they all sit on this one</text>
+    <text class="s a1-pay anim" x="580" y="366">surface. The radius never varies — only the angle does.</text>
+
+    <line class="l a1-why anim" x1="580" y1="388" x2="960" y2="388"/>
+    <text class="s a1-why anim" x="580" y="414">So "how similar are these two messages" is now literally</text>
+    <text class="s a1-why anim" x="580" y="432">"how far apart are these two points" — which is a question</text>
+    <text class="s a1-why anim" x="580" y="450">about triangles. Hence the next slide.</text>
+  </g>
+</svg>
+</div>
