@@ -81,4 +81,10 @@ describe('TalkList', () => {
 
     expect(screen.getByRole('button', { name: /Talk a/ })).toHaveAttribute('aria-current', 'true');
   });
+
+  it('shows an inert Locked group, so the list reads as a subset', () => {
+    render(<TalkList talks={[talk('a')]} collections={['TDS']} onSelect={vi.fn()} />);
+
+    expect(screen.getByRole('button', { name: /Locked/ })).toBeDisabled();
+  });
 });
