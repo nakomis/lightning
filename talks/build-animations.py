@@ -263,7 +263,11 @@ SUB_CSS = '  .sub { margin:calc(var(--u)*.8) 0 0; color:var(--muted); font-size:
 
 
 def build_scenes():
+    # Wipe first: renumbering leaves the previous run's filenames behind, and
+    # a directory of stale scenes is worse than no directory.
     OUT.mkdir(exist_ok=True)
+    for old_file in OUT.glob('*.html'):
+        old_file.unlink()
     out = []
     for n, (fname, act, slug, eyebrow, title, blurb) in enumerate(SCENES, 1):
         src = read(fname)
