@@ -177,9 +177,11 @@
     const CX = 215, CY = 195, HALF = 140;
     // Rainbow, then the aromantic flag top stripe to bottom. Eleven is coprime
     // with every turn of the spiral, so the rim never lines a colour up with
-    // itself on the way round.
+    // itself on the way round. The flag's black stripe is lifted to a dark
+    // grey: at true black the leg reads as a hole in the shell rather than a
+    // line, on either ground.
     const PRIDE = ['#E4322B', '#F08A24', '#E8B10A', '#2FA84F', '#1B62D6', '#8B4FCF',
-                   '#3DA542', '#A7D379', '#FFFFFF', '#A9A9A9', '#000000'];
+                   '#3DA542', '#A7D379', '#FFFFFF', '#A9A9A9', '#4A4A4A'];
 
     const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
     const norm = (a) => { const m = Math.sqrt(dot(a, a)); return [a[0] / m, a[1] / m, a[2] / m]; };
