@@ -1,0 +1,237 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Letters, or meaning</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+
+
+  :root {
+    --ground:#F1F0EC; --surface:#FFFFFF; --sunk:#E5E4DF;
+    --ink:#171B24; --muted:#656B7A; --line:#D2D1CB;
+    --primary:#4C6285; --on-primary:#FFF;
+    --signal:#1B62D6; --miss:#B02A1E; --hit:#1B7F4B; --signal-soft:#DCE7FA;
+    --f-display:"Bricolage Grotesque",system-ui,sans-serif;
+    --f-body:"Public Sans",system-ui,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --u:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+      --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+      --primary:#93A9C9; --on-primary:#12141A;
+      --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+    --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+    --primary:#93A9C9; --on-primary:#12141A;
+    --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; background:var(--ground); color:var(--ink);
+    font-family:var(--f-body);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--u)*1.5); padding:calc(var(--u)*3);
+  }
+  header { text-align:center; }
+  .eyebrow {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--signal); margin-bottom:calc(var(--u)*.6);
+  }
+  h1 { font-family:var(--f-display); font-size:calc(var(--u)*3.2); margin:0; font-weight:800; letter-spacing:-.02em; }
+  .stage { width:100%; max-width:980px; }
+  svg { width:100%; height:auto; display:block; }
+  .controls { display:flex; gap:calc(var(--u)*.6); align-items:center; font-family:var(--f-mono); font-size:calc(var(--u)*1.15); color:var(--muted); }
+  button {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15);
+    background:transparent; color:var(--muted); border:1px solid var(--line);
+    border-radius:4px; padding:calc(var(--u)*.35) calc(var(--u)*.9); cursor:pointer;
+  }
+  button:hover { color:var(--ink); border-color:var(--muted); }
+  button:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+  /* ---- diagram idiom, same as the deck ---- */
+  .box   { fill:var(--surface); stroke:var(--line); stroke-width:1.5; }
+  .box.pri { stroke:var(--primary); }
+  .box.acc { stroke:var(--signal); }
+  .t     { fill:var(--ink); font-family:var(--f-body); font-size:13px; font-weight:600; }
+  .s     { fill:var(--muted); font-family:var(--f-mono); font-size:10.5px; }
+  .mono  { fill:var(--ink); font-family:var(--f-mono); font-size:12px; }
+  .lab   { fill:var(--muted); font-family:var(--f-mono); font-size:10px; }
+  .l     { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .l.acc { stroke:var(--signal); stroke-width:2; }
+  .arrow { fill:var(--muted); stroke:none; }
+  .eq    { fill:var(--ink); font-family:var(--f-mono); font-size:15px; font-weight:500; }
+  .plane { fill:var(--primary); fill-opacity:.07; stroke:var(--primary); stroke-width:1; stroke-opacity:.45; }
+  .shared{ stroke-width:3.5; }
+  .node  { fill:var(--signal); }
+  .ra    { fill:none; stroke:var(--muted); stroke-width:1.2; }
+  .l.t1  { stroke:var(--ink); stroke-width:2; }
+  .eq .op { fill:var(--muted); }
+  .hl    { fill:var(--signal); }
+  .dim   { fill:var(--primary); }
+
+  /* Every animated element is invisible until the timeline reaches it, so a
+     still frame of the finished state is never what you see first. */
+  .anim { opacity:0; transform-box:fill-box; transform-origin:center; }
+  /* Fill-mode is written into every shorthand below rather than set here:
+     an `animation:` shorthand resets any longhand that precedes it, so a
+     separate animation-fill-mode rule is silently discarded. */
+  .run .anim { animation-timing-function:cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes fadeOut { from{opacity:1} to{opacity:0} }
+  @keyframes riseIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes drawIn { from{opacity:0; stroke-dashoffset:var(--len)} to{opacity:1; stroke-dashoffset:0} }
+  @keyframes growUp { from{opacity:0; transform:scaleY(0)} to{opacity:1; transform:scaleY(1)} }
+  @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
+
+  .anim.tr { transform-box:fill-box; }
+  .verdict { font-family:var(--f-body); font-size:26px; font-weight:700; }
+  .hit     { fill:var(--hit); }
+  .miss    { fill:var(--miss); }
+  .lit     { fill:var(--ink); font-weight:600; }
+  .nolit   { fill:var(--muted); text-decoration:line-through; }
+  .colhead { fill:var(--muted); font-family:var(--f-mono); font-size:11px; }
+  .qchip   { fill:var(--sunk); stroke:var(--signal); stroke-width:1.5; }
+  .brace   { stroke:var(--signal); stroke-width:1.5; fill:none; }
+  .sub { margin:calc(var(--u)*.8) 0 0; color:var(--muted); font-size:calc(var(--u)*1.35); max-width:60ch; }
+
+
+  .controls { display:flex; gap:calc(var(--u)*.8); align-items:center; flex-wrap:wrap;
+              justify-content:center; font-family:var(--f-mono);
+              font-size:calc(var(--u)*1.15); color:var(--muted); }
+  .speed { display:flex; align-items:center; gap:calc(var(--u)*.5); }
+  .speed input[type=range] { width:150px; accent-color:var(--signal); }
+  .speed output { font-variant-numeric:tabular-nums; min-width:3.4em; }
+
+  .run .s1-q     { animation:riseIn .45s 0.0s both; }
+  .run .s1-head  { animation:fadeIn .40s 0.5s both; }
+  .run .s1-row   { animation:riseIn .40s calc(0.95s + var(--i)*.70s) both; }
+  .run .s1-let   { animation:popIn .35s calc(1.3s + var(--i)*.70s) both; }
+  .run .s1-mean  { animation:popIn .35s calc(1.65s + var(--i)*.70s) both; }
+  .run .s1-brace { animation:fadeIn .45s 3.95s both; }
+  .run .s1-punch { animation:riseIn .50s 4.35s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim { opacity:1 !important; }
+    .run .anim { animation:none !important both; }
+    
+  }
+</style>
+
+<header>
+  <div class="eyebrow">The problem</div>
+  <h1>Letters, or meaning</h1>
+  <p class="sub">Keyword search answers the wrong question — and disagrees with you every time.</p>
+</header>
+
+<div class="stage">
+<svg id="fig" viewBox="0 0 1000 470" role="img" aria-label="Searching notes for the word bank. A message about sitting on the bank of the Cam matches the letters but not the meaning. A message with bank mistyped as bnak, and a message saying building society, both match the meaning but not the letters. Keyword search only ever answers the letters column; the meaning column is the one you actually asked about.">
+<g class="scene" data-scene="1">
+    <text class="s s1-q anim" x="54" y="46">you search your notes for</text>
+    <g class="s1-q anim">
+      <rect class="qchip" x="54" y="58" width="120" height="42" rx="6"/>
+      <text class="mono" x="114" y="85" text-anchor="middle">bank</text>
+    </g>
+
+    <text class="colhead s1-head anim" x="700" y="140" text-anchor="middle">matches the</text>
+    <text class="colhead s1-head anim" x="700" y="154" text-anchor="middle">LETTERS</text>
+    <text class="colhead s1-head anim" x="880" y="140" text-anchor="middle">matches the</text>
+    <text class="colhead s1-head anim" x="880" y="154" text-anchor="middle">MEANING</text>
+    <text class="lab s1-head anim" x="700" y="168" text-anchor="middle">keyword search</text>
+    <text class="lab s1-head anim" x="880" y="168" text-anchor="middle">what you asked</text>
+
+    <g class="s1-row anim" style="--i:0">
+      <rect class="box" x="54" y="176" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="202">we sat on the <tspan class="lit">bank</tspan> of the Cam</text>
+      <text class="lab" x="70" y="232">a river. Not what you meant.</text>
+    </g>
+    <g class="s1-let anim" style="--i:0"><text class="verdict hit" x="700" y="206" text-anchor="middle">✓</text></g>
+    <g class="s1-mean anim" style="--i:0"><text class="verdict miss" x="880" y="206" text-anchor="middle">✗</text></g>
+    <g class="s1-row anim" style="--i:1">
+      <rect class="box" x="54" y="260" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="286">the <tspan class="nolit">bnak</tspan> rejected the transfer</text>
+      <text class="lab" x="70" y="316">one transposed letter.</text>
+    </g>
+    <g class="s1-let anim" style="--i:1"><text class="verdict miss" x="700" y="290" text-anchor="middle">✗</text></g>
+    <g class="s1-mean anim" style="--i:1"><text class="verdict hit" x="880" y="290" text-anchor="middle">✓</text></g>
+    <g class="s1-row anim" style="--i:2">
+      <rect class="box" x="54" y="344" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="370">the building society declined it</text>
+      <text class="lab" x="70" y="400">the same thing, different words.</text>
+    </g>
+    <g class="s1-let anim" style="--i:2"><text class="verdict miss" x="700" y="374" text-anchor="middle">✗</text></g>
+    <g class="s1-mean anim" style="--i:2"><text class="verdict hit" x="880" y="374" text-anchor="middle">✓</text></g>
+
+    <g class="s1-brace anim">
+      <path class="brace" d="M660 186 l-10 0 l0 210 l10 0"/>
+      <path class="brace" d="M920 186 l10 0 l0 210 l-10 0"/>
+    </g>
+    <text class="eq s1-punch anim hl" x="54" y="440">Three rows. The two columns never agree once.</text>
+    <text class="s s1-punch anim" x="54" y="462">Keyword search can only ever answer the left one.</text>
+  </g>
+</svg>
+</div>
+
+<div class="controls">
+  <button id="replay">↻ replay</button>
+  <button id="theme">◐ theme</button>
+  <span class="speed">
+    <label for="rate">speed</label>
+    <input id="rate" type="range" min="0.10" max="1.50" step="0.01" value="0.33">
+    <output id="rateout">0.33×</output>
+  </span>
+  <span id="clock">0.0s</span>
+</div>
+
+<script>
+
+  const fig = document.getElementById('fig');
+  const clock = document.getElementById('clock');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DUR = 5.1;
+  let raf = 0, t0 = 0;
+
+  // Rate control via the Web Animations API rather than rewriting durations:
+  // playbackRate scales CSS animations already in flight, so the slider is live.
+  const rateEl = document.getElementById('rate');
+  const rateOut = document.getElementById('rateout');
+  let rate = 0.33;
+  try { const v = localStorage.getItem('anim-rate'); if (v) rate = +v; } catch (e) {}
+  rateEl.value = rate;
+
+  function applyRate (r) {
+    rate = r;
+    rateOut.textContent = r.toFixed(2) + '×';
+    for (const a of fig.getAnimations({ subtree: true })) a.playbackRate = r;
+    try { localStorage.setItem('anim-rate', String(r)); } catch (e) {}
+  }
+  rateEl.addEventListener('input', () => applyRate(+rateEl.value));
+
+  function tick (now) {
+    const t = ((now - t0) / 1000) * rate;      // scene time, not wall time
+    clock.textContent = Math.min(t, DUR).toFixed(1) + 's / ' + DUR + 's';
+    if (t < DUR + 0.3) raf = requestAnimationFrame(tick);
+  }
+  function play () {
+    cancelAnimationFrame(raf);
+    fig.classList.remove('run');
+    void fig.getBoundingClientRect();
+    fig.classList.add('run');
+    applyRate(rate);
+    if (!reduced) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    else { clock.textContent = 'static'; }
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  document.getElementById('theme').addEventListener('click', () => {
+    const g = getComputedStyle(document.documentElement).getPropertyValue('--ground').trim().toLowerCase();
+    document.documentElement.setAttribute('data-theme', g === '#12141a' ? 'light' : 'dark');
+  });
+  play();
+</script>

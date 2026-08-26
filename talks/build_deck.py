@@ -198,18 +198,16 @@ def _scene_classes(head):
 
 SLIDES = [
     ('title', 'Embeddings', 'A short tour of the one idea that makes semantic search work.', None),
-    ('lead', 'The problem', 'Computers are very good at finding text you can <em>spell</em>. '
-     'They are hopeless at finding text you can only <em>describe</em>. '
-     'Embeddings are how you close that gap.', None),
     ('scene', None, None, 1),
     ('scene', None, None, 2),
     ('scene', None, None, 3),
     ('scene', None, None, 4),
+    ('scene', None, None, 5),
     ('lead', 'So far: distance', 'Two messages are similar when their points are close. '
      'That is the whole of recall — and it is Pythagoras, 1024 terms deep.', None),
-    ('scene', None, None, 5),
     ('scene', None, None, 6),
     ('scene', None, None, 7),
+    ('scene', None, None, 8),
     ('lead', 'What this buys you', 'Meaning becomes geometry. Similarity becomes distance. '
      'Search becomes <code>ORDER BY</code>. Nothing in the model was ever told what a '
      'queen is, or what a cat is — only where things sit relative to each other.', None),

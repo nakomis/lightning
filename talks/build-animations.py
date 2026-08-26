@@ -17,6 +17,9 @@ OUT = HERE / 'animations'
 DEFAULT_RATE = 0.33          # the user's preferred pace; the slider overrides it
 
 SCENES = [
+    ('naive-search.html',    1, 'letters-or-meaning',      'The problem',
+     'Letters, or meaning',
+     'Keyword search answers the wrong question — and disagrees with you every time.'),
     ('human-rating.html',    1, 'if-you-asked-a-human',    'Where the numbers come from',
      'If you asked a human',
      'Score it out of ten on named attributes. Now do that 1024 times, with no names.'),

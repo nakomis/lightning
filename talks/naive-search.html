@@ -1,6 +1,6 @@
 <!doctype html>
 <meta charset="utf-8">
-<title>If you asked a human</title>
+<title>What keyword search actually matches</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
@@ -92,87 +92,80 @@
   @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
 
   .anim.tr { transform-box:fill-box; }
-  .bar   { fill:var(--primary); }
-  .bartr { fill:var(--line); }
-  .quote { fill:var(--muted); font-family:var(--f-body); font-size:12.5px; font-style:italic; }
+  .verdict { font-family:var(--f-body); font-size:26px; font-weight:700; }
+  .hit     { fill:var(--hit); }
+  .miss    { fill:var(--miss); }
+  .lit     { fill:var(--ink); font-weight:600; }
+  .nolit   { fill:var(--muted); text-decoration:line-through; }
+  .colhead { fill:var(--muted); font-family:var(--f-mono); font-size:11px; }
+  .qchip   { fill:var(--sunk); stroke:var(--signal); stroke-width:1.5; }
+  .brace   { stroke:var(--signal); stroke-width:1.5; fill:none; }
 
-  /* ================= ACT 1 : rate it by hand  (0 - 6.4s) ================= */
-  .run .a1-src   { animation:riseIn .45s .10s both; }
-  .run .a1-ask   { animation:fadeIn .40s .55s both; }
-  .run .a1-row   { animation:riseIn .40s calc(1.00s + var(--i)*.28s) both; }
-  .run .a1-bar   { animation:growX .50s calc(1.15s + var(--i)*.28s) both; }
-  .run .a1-named { animation:fadeIn .45s 2.75s both; }
-    .run .a1-pivot { animation:riseIn .50s 3.35s both; }
+  /* ============ ACT 1 : letters vs meaning  (0 - 6.6s) ================== */
+  .run .a1-q     { animation:riseIn .45s .10s both; }
+  .run .a1-head  { animation:fadeIn .40s .60s both; }
+  .run .a1-row   { animation:riseIn .40s calc(1.05s + var(--i)*.70s) both; }
+  .run .a1-let   { animation:popIn .35s calc(1.40s + var(--i)*.70s) both; }
+  .run .a1-mean  { animation:popIn .35s calc(1.75s + var(--i)*.70s) both; }
+  .run .a1-brace { animation:fadeIn .45s 4.05s both; }
+  .run .a1-punch { animation:riseIn .50s 4.45s both; }
   @media (prefers-reduced-motion: reduce) {
     .anim { opacity:1 !important; }
     .run .anim { animation:none !important both; }
     
   }
-  @keyframes growX { from{opacity:0; transform:scaleX(0)} to{opacity:1; transform:scaleX(1)} }
 </style>
 
 <header>
-  <div class="eyebrow">Where the numbers come from</div>
-  <h1>If you asked a human</h1>
+  <div class="eyebrow">The problem</div>
+  <h1>Letters, or meaning</h1>
 </header>
 
 <div class="stage">
-<svg id="fig" viewBox="0 0 1000 440" role="img"
-     aria-label="To embed a phrase by hand you would score it out of ten on named attributes such as readability, anger and usefulness to a Norwegian fisherman. Dr J. Evans Pritchard's fictional method in Dead Poets Society did exactly this with two axes, perfection and importance, multiplying them to give greatness. A real embedding has 1024 axes and not one of them has a name.">
+<svg id="fig" viewBox="0 0 1000 470" role="img"
+     aria-label="Searching notes for the word bank. A message about sitting on the bank of the Cam matches the letters but not the meaning. A message with bank mistyped as bnak, and a message saying building society, both match the meaning but not the letters. Keyword search only ever answers the letters column; the meaning column is the one you actually asked about.">
   <g class="act1">
-    <text class="s a1-src anim" x="60" y="46">the phrase</text>
-    <g class="a1-src anim">
-      <rect class="box" x="54" y="58" width="330" height="40" rx="5"/>
-      <text class="mono" x="70" y="84">"the cat sat on the mat"</text>
+    <text class="s a1-q anim" x="54" y="46">you search your notes for</text>
+    <g class="a1-q anim">
+      <rect class="qchip" x="54" y="58" width="120" height="42" rx="6"/>
+      <text class="mono" x="114" y="85" text-anchor="middle">bank</text>
     </g>
-    <text class="s a1-ask anim" x="54" y="130">Score it out of ten on whatever attributes you fancy:</text>
 
-        <g class="a1-row anim" style="--i:0">
-      <text class="lab" x="54" y="166">readability</text>
-      <rect class="bartr" x="330" y="156" width="150" height="12" rx="3"/>
-      <text class="mono" x="494" y="167">8</text>
+    <text class="colhead a1-head anim" x="700" y="140" text-anchor="middle">matches the</text>
+    <text class="colhead a1-head anim" x="700" y="154" text-anchor="middle">LETTERS</text>
+    <text class="colhead a1-head anim" x="880" y="140" text-anchor="middle">matches the</text>
+    <text class="colhead a1-head anim" x="880" y="154" text-anchor="middle">MEANING</text>
+    <text class="lab a1-head anim" x="700" y="168" text-anchor="middle">keyword search</text>
+    <text class="lab a1-head anim" x="880" y="168" text-anchor="middle">what you asked</text>
+
+    <g class="a1-row anim" style="--i:0">
+      <rect class="box" x="54" y="176" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="202">we sat on the <tspan class="lit">bank</tspan> of the Cam</text>
+      <text class="lab" x="70" y="232">a river. Not what you meant.</text>
     </g>
-    <rect class="bar a1-bar anim" style="--i:0; transform-origin:left center"
-          x="330" y="156" width="120" height="12" rx="3"/>
+    <g class="a1-let anim" style="--i:0"><text class="verdict hit" x="700" y="206" text-anchor="middle">✓</text></g>
+    <g class="a1-mean anim" style="--i:0"><text class="verdict miss" x="880" y="206" text-anchor="middle">✗</text></g>
     <g class="a1-row anim" style="--i:1">
-      <text class="lab" x="54" y="208">anger</text>
-      <rect class="bartr" x="330" y="198" width="150" height="12" rx="3"/>
-      <text class="mono" x="494" y="209">1</text>
+      <rect class="box" x="54" y="260" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="286">the <tspan class="nolit">bnak</tspan> rejected the transfer</text>
+      <text class="lab" x="70" y="316">one transposed letter.</text>
     </g>
-    <rect class="bar a1-bar anim" style="--i:1; transform-origin:left center"
-          x="330" y="198" width="15" height="12" rx="3"/>
+    <g class="a1-let anim" style="--i:1"><text class="verdict miss" x="700" y="290" text-anchor="middle">✗</text></g>
+    <g class="a1-mean anim" style="--i:1"><text class="verdict hit" x="880" y="290" text-anchor="middle">✓</text></g>
     <g class="a1-row anim" style="--i:2">
-      <text class="lab" x="54" y="250">formality</text>
-      <rect class="bartr" x="330" y="240" width="150" height="12" rx="3"/>
-      <text class="mono" x="494" y="251">3</text>
+      <rect class="box" x="54" y="344" width="560" height="40" rx="5"/>
+      <text class="mono" x="70" y="370">the building society declined it</text>
+      <text class="lab" x="70" y="400">the same thing, different words.</text>
     </g>
-    <rect class="bar a1-bar anim" style="--i:2; transform-origin:left center"
-          x="330" y="240" width="45" height="12" rx="3"/>
-    <g class="a1-row anim" style="--i:3">
-      <text class="lab" x="54" y="292">concreteness</text>
-      <rect class="bartr" x="330" y="282" width="150" height="12" rx="3"/>
-      <text class="mono" x="494" y="293">9</text>
-    </g>
-    <rect class="bar a1-bar anim" style="--i:3; transform-origin:left center"
-          x="330" y="282" width="135" height="12" rx="3"/>
-    <g class="a1-row anim" style="--i:4">
-      <text class="lab" x="54" y="334">usefulness to a Norwegian fisherman</text>
-      <rect class="bartr" x="330" y="324" width="150" height="12" rx="3"/>
-      <text class="mono" x="494" y="335">2</text>
-    </g>
-    <rect class="bar a1-bar anim" style="--i:4; transform-origin:left center"
-          x="330" y="324" width="30" height="12" rx="3"/>
+    <g class="a1-let anim" style="--i:2"><text class="verdict miss" x="700" y="374" text-anchor="middle">✗</text></g>
+    <g class="a1-mean anim" style="--i:2"><text class="verdict hit" x="880" y="374" text-anchor="middle">✓</text></g>
 
-    <text class="s a1-named anim" x="54" y="410">Five axes. Every one of them has a name you could argue about</text>
-    <text class="s a1-named anim" x="54" y="428">in the pub — which is exactly what makes them feel reasonable.</text>
-
-    <g class="a1-pivot anim">
-      <rect class="box" x="560" y="150" width="400" height="150" rx="6"/>
-      <text class="t"  x="582" y="186">A real embedding does this 1024 times</text>
-      <text class="s"  x="582" y="216">…and not one of those axes has a name.</text>
-      <text class="s"  x="582" y="252">They are statistical constructs — directions that</text>
-      <text class="s"  x="582" y="272">happened to be useful, meaning nothing on their own.</text>
+    <g class="a1-brace anim">
+      <path class="brace" d="M660 186 l-10 0 l0 210 l10 0"/>
+      <path class="brace" d="M920 186 l10 0 l0 210 l-10 0"/>
     </g>
+    <text class="eq a1-punch anim hl" x="54" y="440">Three rows. The two columns never agree once.</text>
+    <text class="s a1-punch anim" x="54" y="462">Keyword search can only ever answer the left one.</text>
   </g>
 </svg>
 </div>
