@@ -93,16 +93,28 @@
   @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
 
   .anim.tr { transform-box:fill-box; }
-  .shade { fill:url(#shade); stroke:none; }
-  .rim   { fill:none; stroke:var(--line); stroke-width:1.6; }
-  .grid  { fill:none; stroke:var(--line); stroke-width:1; stroke-opacity:.40; }
-  .grid.eq { stroke-opacity:.62; }
+  .rim    { fill:none; stroke:var(--line); stroke-width:1.6; }
+  .radius { fill:none; stroke:var(--muted); stroke-width:1.2; stroke-dasharray:3 4; }
+  .orig   { fill:var(--ink); }
+  .tri    { stroke:none; }
+  .tri.hit  { fill:var(--hit);  fill-opacity:.16; }
+  .tri.miss { fill:var(--miss); fill-opacity:.13; }
+  .chord  { fill:none; stroke-width:3; }
+  .chord.hit { stroke:var(--hit); }  .chord.miss { stroke:var(--miss); }
+  .arc2   { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .ra     { fill:none; stroke:var(--ink); stroke-width:1.4; }
   .dot    { stroke:var(--ground); stroke-width:1.5; }
   .dot.ca { fill:var(--signal); }
   .dot.cb { fill:var(--ground); stroke:var(--primary); stroke-width:2.5; }
   .near   { stroke:var(--hit);  stroke-width:3; fill:none; }
   .far    { stroke:var(--miss); stroke-width:3; fill:none; }
-  .arc    { fill:none; stroke-width:2; stroke-dasharray:3 3; }
+  .radius { fill:none; stroke:var(--muted); stroke-width:1.2; stroke-dasharray:3 4; stroke-opacity:.8; }
+  .orig   { fill:var(--ink); }
+  .tri    { fill:var(--primary); fill-opacity:.13; stroke:var(--muted); stroke-width:1.3; }
+  .chord  { fill:none; stroke-width:3; }
+  .chord.hit { stroke:var(--hit); }  .chord.miss { stroke:var(--miss); }
+  .arc2   { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .ra     { fill:none; stroke:var(--ink); stroke-width:1.4; }
   .sub { margin:calc(var(--u)*.8) 0 0; color:var(--muted); font-size:calc(var(--u)*1.35); max-width:60ch; }
 
 
@@ -118,9 +130,10 @@
   .run .s4-calab { animation:fadeIn .35s 1.05s both; }
   .run .s4-cb    { animation:popIn .30s calc(1.25s + var(--i)*.09s) both; }
   .run .s4-cblab { animation:fadeIn .35s 1.7s both; }
-  .run .s4-near  { animation:drawIn .55s 2.2s both; }
+  .run .s4-orig  { animation:fadeIn .45s 1.95s both; }
+  .run .s4-near  { animation:fadeIn .50s 2.35s both; }
   .run .s4-nlab  { animation:riseIn .40s 2.65s both; }
-  .run .s4-far   { animation:drawIn .70s 3.65s both; }
+  .run .s4-far   { animation:fadeIn .55s 3.65s both; }
   .run .s4-flab  { animation:riseIn .40s 4.25s both; }
   .run .s4-pay   { animation:riseIn .50s 5.25s both; }
   .run .s4-why   { animation:fadeIn .50s 6.25s both; }
@@ -134,93 +147,83 @@
 <header>
   <div class="eyebrow">Why any of this matters</div>
   <h1>Similarity becomes distance</h1>
-  <p class="sub">Everything lands on one sphere, so "how similar" turns into "how far apart".</p>
+  <p class="sub">Two points and the origin make a triangle. Similarity is now an angle.</p>
 </header>
 
 <div class="stage">
-<svg id="fig" viewBox="0 0 1000 470" role="img" aria-label="A two-dimensional shadow of the unit hypersphere. Every message is L2-normalised so it lands on the surface. Messages about one subject cluster together; messages about another cluster elsewhere. Two points in the same cluster are 21 degrees apart, a chord of 0.36. Two points in different clusters are 127 degrees apart, a chord of 1.79. Because the radius is fixed, distance and angle are the same fact.">
+<svg id="fig" viewBox="0 0 1000 470" role="img" aria-label="A two-dimensional shadow of the unit circle. Every message is L2-normalised so it lands on the surface. Messages about one subject cluster together; messages about another cluster elsewhere. Two points in the same cluster are 21 degrees apart, a chord of 0.36. Two points in different clusters are 127 degrees apart, a chord of 1.79. Because the radius is fixed, distance and angle are the same fact.">
 <g class="scene" data-scene="4">
     <g class="s4-ball anim">
-      <defs>
-        <radialGradient id="shade" cx="32%" cy="26%" r="78%">
-          <stop offset="0%"  stop-color="var(--primary)" stop-opacity=".26"/>
-          <stop offset="62%" stop-color="var(--primary)" stop-opacity=".09"/>
-          <stop offset="100%" stop-color="var(--sunk)"   stop-opacity=".30"/>
-        </radialGradient>
-        <clipPath id="ball"><circle cx="300" cy="250" r="150"/></clipPath>
-      </defs>
-      <circle class="shade" cx="300" cy="250" r="150"/>
-      <g clip-path="url(#ball)">
-      <ellipse class="grid" cx="300" cy="370.4" rx="75.0" ry="28.1"/>
-      <ellipse class="grid" cx="300" cy="319.5" rx="129.9" ry="48.7"/>
-      <ellipse class="grid eq" cx="300" cy="250.0" rx="150.0" ry="56.2"/>
-      <ellipse class="grid" cx="300" cy="180.5" rx="129.9" ry="48.7"/>
-      <ellipse class="grid" cx="300" cy="129.6" rx="75.0" ry="28.1"/>
-      <polyline class="grid" points="450.0,250.0 449.4,237.9 447.7,225.8 444.9,214.0 441.0,202.4 435.9,191.2 429.9,180.5 422.9,170.2 414.9,160.6 406.1,151.7 396.4,143.5 386.0,136.1 375.0,129.6 363.4,124.0 351.3,119.3 338.8,115.7 326.0,113.0 313.1,111.5 300.0,110.9 286.9,111.5 274.0,113.0 261.2,115.7 248.7,119.3 236.6,124.0 225.0,129.6 214.0,136.1 203.6,143.5 193.9,151.7 185.1,160.6 177.1,170.2 170.1,180.5 164.1,191.2 159.0,202.4 155.1,214.0 152.3,225.8 150.6,237.9 150.0,250.0 150.6,262.1 152.3,274.2 155.1,286.0 159.0,297.6 164.1,308.8 170.1,319.5 177.1,329.8 185.1,339.4 193.9,348.3 203.6,356.5 214.0,363.9 225.0,370.4 236.6,376.0 248.7,380.7 261.2,384.3 274.0,387.0 286.9,388.5 300.0,389.1 313.1,388.5 326.0,387.0 338.8,384.3 351.3,380.7 363.4,376.0 375.0,370.4 386.0,363.9 396.4,356.5 406.1,348.3 414.9,339.4 422.9,329.8 429.9,319.5 435.9,308.8 441.0,297.6 444.9,286.0 447.7,274.2 449.4,262.1 450.0,250.0"/>
-      <polyline class="grid" points="429.9,278.1 429.4,265.9 427.9,253.5 425.5,241.1 422.1,228.8 417.7,216.7 412.5,204.8 406.4,193.2 399.5,182.1 391.9,171.5 383.5,161.5 374.5,152.2 365.0,143.6 354.9,135.8 344.4,128.9 333.6,122.9 322.6,117.9 311.3,113.9 300.0,110.9 288.7,109.0 277.4,108.2 266.4,108.4 255.6,109.7 245.1,112.1 235.0,115.5 225.5,120.0 216.5,125.4 208.1,131.8 200.5,139.1 193.6,147.2 187.5,156.1 182.3,165.8 177.9,176.0 174.5,186.9 172.1,198.2 170.6,209.9 170.1,221.9 170.6,234.1 172.1,246.5 174.5,258.9 177.9,271.2 182.3,283.3 187.5,295.2 193.6,306.8 200.5,317.9 208.1,328.5 216.5,338.5 225.5,347.8 235.0,356.4 245.1,364.2 255.6,371.1 266.4,377.1 277.4,382.1 288.7,386.1 300.0,389.1 311.3,391.0 322.6,391.8 333.6,391.6 344.4,390.3 354.9,387.9 365.0,384.5 374.5,380.0 383.5,374.6 391.9,368.2 399.5,360.9 406.4,352.8 412.5,343.9 417.7,334.2 422.1,324.0 425.5,313.1 427.9,301.8 429.4,290.1 429.9,278.1"/>
-      <polyline class="grid" points="375.0,298.7 374.7,286.4 373.9,273.8 372.4,261.0 370.5,248.2 368.0,235.3 365.0,222.6 361.4,210.1 357.5,197.9 353.0,186.1 348.2,174.7 343.0,164.0 337.5,153.9 331.7,144.5 325.7,136.0 319.4,128.3 313.0,121.5 306.5,115.7 300.0,110.9 293.5,107.2 287.0,104.6 280.6,103.1 274.3,102.7 268.3,103.4 262.5,105.2 257.0,108.2 251.8,112.2 247.0,117.2 242.5,123.3 238.6,130.4 235.0,138.3 232.0,147.1 229.5,156.7 227.6,167.0 226.1,177.9 225.3,189.4 225.0,201.3 225.3,213.6 226.1,226.2 227.6,239.0 229.5,251.8 232.0,264.7 235.0,277.4 238.6,289.9 242.5,302.1 247.0,313.9 251.8,325.3 257.0,336.0 262.5,346.1 268.3,355.5 274.3,364.0 280.6,371.7 287.0,378.5 293.5,384.3 300.0,389.1 306.5,392.8 313.0,395.4 319.4,396.9 325.7,397.3 331.7,396.6 337.5,394.8 343.0,391.8 348.2,387.8 353.0,382.8 357.5,376.7 361.4,369.6 365.0,361.7 368.0,352.9 370.5,343.3 372.4,333.0 373.9,322.1 374.7,310.6 375.0,298.7"/>
-      <polyline class="grid" points="300.0,306.2 300.0,293.9 300.0,281.2 300.0,268.3 300.0,255.2 300.0,242.1 300.0,229.1 300.0,216.3 300.0,203.6 300.0,191.4 300.0,179.6 300.0,168.3 300.0,157.7 300.0,147.7 300.0,138.5 300.0,130.2 300.0,122.8 300.0,116.3 300.0,110.9 300.0,106.6 300.0,103.3 300.0,101.1 300.0,100.1 300.0,100.2 300.0,101.5 300.0,103.8 300.0,107.3 300.0,111.9 300.0,117.6 300.0,124.2 300.0,131.8 300.0,140.3 300.0,149.6 300.0,159.7 300.0,170.5 300.0,181.9 300.0,193.8 300.0,206.1 300.0,218.8 300.0,231.7 300.0,244.8 300.0,257.9 300.0,270.9 300.0,283.7 300.0,296.4 300.0,308.6 300.0,320.4 300.0,331.7 300.0,342.3 300.0,352.3 300.0,361.5 300.0,369.8 300.0,377.2 300.0,383.7 300.0,389.1 300.0,393.4 300.0,396.7 300.0,398.9 300.0,399.9 300.0,399.8 300.0,398.5 300.0,396.2 300.0,392.7 300.0,388.1 300.0,382.4 300.0,375.8 300.0,368.2 300.0,359.7 300.0,350.4 300.0,340.3 300.0,329.5 300.0,318.1 300.0,306.2"/>
-      <polyline class="grid" points="225.0,298.7 225.3,286.4 226.1,273.8 227.6,261.0 229.5,248.2 232.0,235.3 235.0,222.6 238.6,210.1 242.5,197.9 247.0,186.1 251.8,174.7 257.0,164.0 262.5,153.9 268.3,144.5 274.3,136.0 280.6,128.3 287.0,121.5 293.5,115.7 300.0,110.9 306.5,107.2 313.0,104.6 319.4,103.1 325.7,102.7 331.7,103.4 337.5,105.2 343.0,108.2 348.2,112.2 353.0,117.2 357.5,123.3 361.4,130.4 365.0,138.3 368.0,147.1 370.5,156.7 372.4,167.0 373.9,177.9 374.7,189.4 375.0,201.3 374.7,213.6 373.9,226.2 372.4,239.0 370.5,251.8 368.0,264.7 365.0,277.4 361.4,289.9 357.5,302.1 353.0,313.9 348.2,325.3 343.0,336.0 337.5,346.1 331.7,355.5 325.7,364.0 319.4,371.7 313.0,378.5 306.5,384.3 300.0,389.1 293.5,392.8 287.0,395.4 280.6,396.9 274.3,397.3 268.3,396.6 262.5,394.8 257.0,391.8 251.8,387.8 247.0,382.8 242.5,376.7 238.6,369.6 235.0,361.7 232.0,352.9 229.5,343.3 227.6,333.0 226.1,322.1 225.3,310.6 225.0,298.7"/>
-      <polyline class="grid" points="170.1,278.1 170.6,265.9 172.1,253.5 174.5,241.1 177.9,228.8 182.3,216.7 187.5,204.8 193.6,193.2 200.5,182.1 208.1,171.5 216.5,161.5 225.5,152.2 235.0,143.6 245.1,135.8 255.6,128.9 266.4,122.9 277.4,117.9 288.7,113.9 300.0,110.9 311.3,109.0 322.6,108.2 333.6,108.4 344.4,109.7 354.9,112.1 365.0,115.5 374.5,120.0 383.5,125.4 391.9,131.8 399.5,139.1 406.4,147.2 412.5,156.1 417.7,165.8 422.1,176.0 425.5,186.9 427.9,198.2 429.4,209.9 429.9,221.9 429.4,234.1 427.9,246.5 425.5,258.9 422.1,271.2 417.7,283.3 412.5,295.2 406.4,306.8 399.5,317.9 391.9,328.5 383.5,338.5 374.5,347.8 365.0,356.4 354.9,364.2 344.4,371.1 333.6,377.1 322.6,382.1 311.3,386.1 300.0,389.1 288.7,391.0 277.4,391.8 266.4,391.6 255.6,390.3 245.1,387.9 235.0,384.5 225.5,380.0 216.5,374.6 208.1,368.2 200.5,360.9 193.6,352.8 187.5,343.9 182.3,334.2 177.9,324.0 174.5,313.1 172.1,301.8 170.6,290.1 170.1,278.1"/>
-      </g>
-      <circle class="rim" cx="300" cy="250" r="150"/>
-      <text class="lab" x="300" y="434" text-anchor="middle">the unit hypersphere — a 2-D shadow of 1024</text>
+      <circle class="rim" cx="290" cy="250" r="150"/>
+      <text class="lab" x="290" y="434" text-anchor="middle">the unit circle — a flat slice of 1024 dimensions</text>
     </g>
 
-    <circle class="dot ca s4-ca anim" style="--i:0" cx="161.2" cy="297.2" r="6"/>
-    <circle class="dot ca s4-ca anim" style="--i:1" cx="158.7" cy="254.1" r="6"/>
-    <circle class="dot ca s4-ca anim" style="--i:2" cx="164.8" cy="224.8" r="6"/>
-    <circle class="dot ca s4-ca anim" style="--i:3" cx="176.7" cy="196.7" r="6"/>
-    <text class="s s4-calab anim hl" x="141" y="323" text-anchor="end">messages about cats</text>
-
-    <circle class="dot cb s4-cb anim" style="--i:0" cx="291.8" cy="136.6" r="6"/>
-    <circle class="dot cb s4-cb anim" style="--i:1" cx="330.9" cy="138.9" r="6"/>
-    <circle class="dot cb s4-cb anim" style="--i:2" cx="355.9" cy="144.6" r="6"/>
-    <circle class="dot cb s4-cb anim" style="--i:3" cx="379.2" cy="153.6" r="6"/>
-    <text class="s s4-cblab anim" x="339" y="115" text-anchor="middle">messages about Docker</text>
-
-    <!-- same cluster: 21 degrees, chord 0.36 -->
-    <g class="s4-near anim" style="--len:60">
-      <path class="near" style="stroke-dasharray:60" d="M158.7 254.1 L176.7 196.7"/>
-    </g>
-    <g class="s4-nlab anim">
-      <text class="mono hit" x="145" y="229" text-anchor="end">0.42</text>
+    <!-- the origin, and the radii the angles are measured between -->
+    <g class="s4-orig anim">
+      <path class="radius" d="M290 250 L140.4 260.5"/>
+      <path class="radius" d="M290 250 L157.6 320.4"/>
+      <path class="radius" d="M290 250 L279.5 100.4"/>
+      <circle class="orig" cx="290" cy="250" r="4.5"/>
+      <text class="t" x="301" y="268" font-size="13">O</text>
+      <text class="lab" x="209" y="247" text-anchor="end">1</text>
     </g>
 
-    <!-- different clusters: 127 degrees, chord 1.79 -->
-    <g class="s4-far anim" style="--len:207">
-      <path class="far" style="stroke-dasharray:207" d="M158.7 254.1 L330.9 138.9"/>
+    <circle class="dot ca s4-ca anim" style="--i:0" cx="141.5" cy="229.1" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:1" cx="140.4" cy="260.5" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:2" cx="145.8" cy="291.3" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:3" cx="157.6" cy="320.4" r="6"/>
+    <text class="s s4-calab anim hl" x="124" y="346" text-anchor="end">messages about cats</text>
+
+    <circle class="dot cb s4-cb anim" style="--i:0" cx="310.9" cy="101.5" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:1" cx="279.5" cy="100.4" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:2" cx="248.7" cy="105.8" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:3" cx="219.6" cy="117.6" r="6"/>
+    <text class="s s4-cblab anim" x="265" y="80" text-anchor="middle">messages about Docker</text>
+
+    <!-- same subject: the triangle O-P-Q lives in one plane, and the angle is true -->
+    <g class="s4-near anim">
+      <path class="tri hit" d="M290 250 L140.4 260.5 L157.6 320.4 Z"/>
+      <path class="arc2" d="M246.1 253.1 A44 44 0 0 0 251.2 270.7"/>
+      <text class="mono hit" x="232" y="267" text-anchor="middle">24°</text>
+      <path class="chord hit" d="M140.4 260.5 L157.6 320.4"/>
+      <text class="mono hit" x="126" y="294" text-anchor="end">0.42</text>
     </g>
-    <g class="s4-flab anim">
-      <text class="mono miss" x="279" y="200" text-anchor="middle">1.41</text>
+
+    <!-- different subjects: a right angle, so the square rather than an arc -->
+    <g class="s4-far anim">
+      <path class="tri miss" d="M290 250 L140.4 260.5 L279.5 100.4 Z"/>
+      <path class="ra" d="M272.0 251.3 L270.8 233.3 L288.7 232.0"/>
+      <text class="mono miss" x="243" y="209" text-anchor="middle">90°</text>
+      <path class="chord miss" d="M140.4 260.5 L279.5 100.4"/>
+      <text class="mono miss" x="184" y="172" text-anchor="middle">1.41</text>
     </g>
 
     <!-- readouts -->
     <g class="s4-nlab anim">
-      <rect class="box" x="580" y="120" width="380" height="70" rx="5"/>
-      <circle class="dot ca" cx="606" cy="146" r="5.5"/>
-      <circle class="dot ca" cx="624" cy="146" r="5.5"/>
-      <text class="t"    x="646" y="151">same subject</text>
-      <text class="mono hit" x="944" y="151" text-anchor="end">θ = 24°</text>
-      <text class="s"    x="606" y="176">a short chord, and a narrow angle</text>
+      <rect class="box" x="600" y="104" width="360" height="76" rx="6"/>
+      <circle class="dot ca" cx="626" cy="134" r="5.5"/>
+      <circle class="dot ca" cx="644" cy="134" r="5.5"/>
+      <text class="t"        x="666" y="139">same subject</text>
+      <text class="mono hit" x="944" y="139" text-anchor="end">θ = 24°</text>
+      <text class="s"        x="626" y="164">a narrow angle, and a short chord</text>
     </g>
     <g class="s4-flab anim">
-      <rect class="box" x="580" y="206" width="380" height="70" rx="5"/>
-      <circle class="dot ca" cx="606" cy="232" r="5.5"/>
-      <circle class="dot cb" cx="624" cy="232" r="5.5"/>
-      <text class="t"    x="646" y="237">nothing in common</text>
-      <text class="mono miss" x="944" y="237" text-anchor="end">θ = 90°</text>
-      <text class="s"    x="606" y="262">perpendicular — cos θ = 0, nothing shared</text>
+      <rect class="box" x="600" y="194" width="360" height="76" rx="6"/>
+      <circle class="dot ca" cx="626" cy="224" r="5.5"/>
+      <circle class="dot cb" cx="644" cy="224" r="5.5"/>
+      <text class="t"         x="666" y="229">nothing in common</text>
+      <text class="mono miss" x="944" y="229" text-anchor="end">θ = 90°</text>
+      <text class="s"         x="626" y="254">perpendicular — cos θ = 0, nothing shared</text>
     </g>
 
-    <text class="eq s4-pay anim hl" x="580" y="322">similar → close → small angle</text>
-    <text class="s s4-pay anim" x="580" y="348">Every vector is unit length, so they all sit on this one</text>
-    <text class="s s4-pay anim" x="580" y="366">surface. The radius never varies — only the angle does.</text>
+    <text class="eq s4-pay anim hl" x="600" y="310">similar → close → small angle</text>
+    <text class="s s4-pay anim" x="600" y="336">Two vectors span a plane, and in that plane you have an</text>
+    <text class="s s4-pay anim" x="600" y="354">ordinary triangle: two sides of length 1, and θ between them.</text>
+    <text class="lab s4-pay anim" x="600" y="378">law of cosines:  d² = 1 + 1 − 2cos θ  =  2(1 − cos θ)</text>
 
-    <line class="l s4-why anim" x1="580" y1="388" x2="960" y2="388"/>
-    <text class="s s4-why anim" x="580" y="414">So "how similar are these two messages" is now literally</text>
-    <text class="s s4-why anim" x="580" y="432">"how far apart are these two points" — which is a question</text>
-    <text class="s s4-why anim" x="580" y="450">about triangles. Hence the next slide.</text>
+    <text class="s s4-why anim" x="600" y="416">So "how similar are these two messages" is now literally</text>
+    <text class="s s4-why anim" x="600" y="434">"how far apart are these two points" — a question about</text>
+    <text class="s s4-why anim" x="600" y="452">triangles. Hence the next slide.</text>
   </g>
 </svg>
 </div>

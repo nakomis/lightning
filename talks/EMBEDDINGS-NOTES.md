@@ -123,10 +123,21 @@ Walk the two chords:
 > "So 'how similar are these two messages' has just become 'how far apart are
 > these two points'. And that is a question about triangles."
 
-Note the sphere is drawn as a 2-D shadow — say so if anyone looks sceptical. The
-real thing has 1024 axes and cannot be drawn. The chord lengths shown are exact
-for the angles shown: 2·sin(θ/2), which is the same √(2(1−cos θ)) that lands on
-slide 7.
+The circle is drawn flat on purpose, so **the angles on screen are the real
+angles** — 24° and 90° would survive a protractor. Two vectors span a plane, and
+the triangle O–P–Q lies entirely inside it; that is true whether the space has
+three dimensions or 1024, which is why the picture is honest rather than a
+cartoon.
+
+The law of cosines in that plane gives it away: two sides of length 1 with θ
+between them means d² = 1 + 1 − 2cos θ = **2(1 − cos θ)**. That is the identity
+slide 7 lands, so this triangle *derives* it rather than illustrating it. Worth
+saying if the room is mathematical.
+
+If asked why `<=>` and not a hand-written formula: it is pgvector's
+cosine-distance operator, and it is the literal query this project runs —
+`ORDER BY m.embedding <=> $1::vector`. The sibling operators are `<->` for L2 and
+`<#>` for negative inner product.
 
 ## 6 — The hypotenuse becomes a leg *(animated)*
 
@@ -161,7 +172,7 @@ Then the payoff, and slow down here:
 > "Because every vector is unit length, d² = 2(1 − cos θ). Distance and angle
 > are the same measurement wearing different clothes. Rank by one and you have
 > ranked by the other — which is why the whole of semantic search is
-> `ORDER BY embedding <=> query_vec`."
+> `ORDER BY m.embedding <=> $1::vector`."
 
 ---
 

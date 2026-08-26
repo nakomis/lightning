@@ -118,15 +118,16 @@
   .run .a2-eqA    { animation:riseIn .40s 5.90s both; }
   .run .a2-hand   { animation:riseIn .45s 6.95s both; }
   .run .a2-eqB    { animation:riseIn .45s 8.70s both; }
-  .run .act2      { animation:fadeOut .40s 10.35s forwards; }
+  .run .a2-fin    { animation:riseIn .50s 9.40s both; }
+  .run .act2      { animation:fadeOut .40s 11.05s forwards; }
 
   /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
-  .run .a3-tile  { animation:fadeIn .30s calc(10.70s + var(--i)*.030s) both; }
-  .run .a3-count { animation:fadeIn .35s 11.60s both; }
-  .run .a3-rec   { animation:riseIn .45s 10.80s both; }
-  .run .a3-eqn   { animation:riseIn .45s 12.40s both; }
-  .run .a3-rule  { animation:fadeIn .40s 13.30s both; }
-  .run .a3-cos   { animation:riseIn .50s 13.50s both; }
+  .run .a3-tile  { animation:fadeIn .30s calc(11.40s + var(--i)*.030s) both; }
+  .run .a3-count { animation:fadeIn .35s 12.30s both; }
+  .run .a3-rec   { animation:riseIn .45s 11.50s both; }
+  .run .a3-eqn   { animation:riseIn .45s 13.10s both; }
+  .run .a3-rule  { animation:fadeIn .40s 14.00s both; }
+  .run .a3-cos   { animation:riseIn .50s 14.20s both; }
 
   @media (prefers-reduced-motion: reduce) {
     .anim { opacity:1 !important; }
@@ -267,18 +268,18 @@
     <text class="mono a2-hyp3 anim hl" x="150" y="228" text-anchor="end">d = 250</text>
 
     <!-- ---- the algebra ---- -->
-    <text class="eq a2-eqA anim" x="470" y="140">plane 1</text>
-    <text class="eq a2-eqA anim" x="470" y="168">d₂ = √(x² + y²) = 150</text>
+    <text class="t a2-eqA anim" x="470" y="108">plane 1</text>
+    <g class="a2-eqA anim" data-tex="d_2 = \sqrt{x^2 + y^2}" data-x="470" data-y="146" data-em="25"></g>
 
-    <text class="s a2-hand anim" x="470" y="206">The hypotenuse does not stay a hypotenuse.</text>
-    <text class="s a2-hand anim" x="470" y="226">Stand a new plane on it, perpendicular to the first,</text>
-    <text class="s a2-hand anim" x="470" y="246">and it becomes one of the two <tspan class="hl">perpendicular sides</tspan>.</text>
+    <text class="s a2-hand anim" x="470" y="180">The hypotenuse does not stay a hypotenuse.</text>
+    <text class="s a2-hand anim" x="470" y="198">Stand a new plane on it, perpendicular to the first,</text>
+    <text class="s a2-hand anim" x="470" y="216">and it becomes one of the two <tspan class="hl">perpendicular sides</tspan>.</text>
 
-    <text class="eq a2-eqB anim" x="470" y="290">plane 2</text>
-    <text class="eq a2-eqB anim" x="470" y="318">d₃² = d₂² + z²</text>
-    <text class="eq a2-eqB anim" x="470" y="346">    = (√(x² + y²))² + z²</text>
-    <text class="eq a2-eqB anim hl" x="470" y="374">    = x² + y² + z²</text>
-    <text class="lab a2-eqB anim" x="470" y="396">14400 + 8100 + 40000 = 62500 = 250²</text>
+    <text class="t a2-eqB anim" x="470" y="248">plane 2</text>
+    <g class="a2-eqB anim" data-tex="d_3^{\,2} = d_2^{\,2} + z^2" data-x="470" data-y="284" data-em="21"></g>
+    <g class="a2-eqB anim" data-tex="\phantom{d_3^{\,2}} = \left(\sqrt{x^2+y^2}\right)^{2} + z^2" data-x="470" data-y="328" data-em="21"></g>
+    <g class="a2-eqB anim" data-tex="\phantom{d_3^{\,2}} = x^2 + y^2 + z^2" data-x="470" data-y="366" data-em="21"></g>
+    <g class="a2-fin anim" data-tex="d_3 = \sqrt{x^2 + y^2 + z^2}" data-x="470" data-y="412" data-em="25" data-fill="var(--signal)"></g>
   </g>
 
   <!-- ============================ ACT 3 ============================ -->
@@ -288,23 +289,19 @@
     <g id="tiles"></g>
     <text class="lab a3-count anim" id="counter" x="208" y="392" text-anchor="middle">1024 terms</text>
 
-    <text class="s a3-rec anim" x="440" y="96">Keep going. Every new dimension does the same thing:</text>
-    <text class="eq a3-rec anim" x="460" y="130">d₂² = x₁² + x₂²</text>
-    <text class="eq a3-rec anim" x="460" y="158">d₃² = d₂² + x₃²</text>
-    <text class="eq a3-rec anim" x="460" y="186">d₄² = d₃² + x₄²</text>
-    <text class="lab a3-rec anim" x="460" y="208">⋮</text>
-    <text class="eq a3-rec anim hl" x="460" y="236">dₖ² = dₖ₋₁² + xₖ²</text>
-    <text class="s a3-rec anim" x="640" y="236">← the previous distance, as a leg</text>
+    <text class="t a3-rec anim" x="440" y="100">every new dimension does the same thing</text>
+    <g class="a3-rec anim" data-tex="d_2^{\,2} = x_1^2 + x_2^2"        data-x="460" data-y="140" data-em="20"></g>
+    <g class="a3-rec anim" data-tex="d_3^{\,2} = d_2^{\,2} + x_3^2"   data-x="460" data-y="176" data-em="20"></g>
+    <g class="a3-rec anim" data-tex="d_4^{\,2} = d_3^{\,2} + x_4^2"   data-x="460" data-y="212" data-em="20"></g>
+    <text class="lab a3-rec anim" x="470" y="238">⋮</text>
+    <g class="a3-rec anim" data-tex="d_k^{\,2} = d_{k-1}^{\,2} + x_k^2" data-x="460" data-y="274" data-em="22" data-fill="var(--signal)"></g>
+    <text class="s a3-rec anim" x="620" y="274">← the previous distance, as a leg</text>
 
-    <text class="s a3-eqn anim" x="440" y="278">Unroll it 1024 times and the nesting collapses:</text>
-    <text class="eq a3-eqn anim" x="460" y="316">d(a,b) = √( Σ (aᵢ − bᵢ)² )</text>
-    <text class="lab a3-eqn anim" x="572" y="298">1024</text>
-    <text class="lab a3-eqn anim" x="568" y="332">i = 1</text>
+    <g class="a3-eqn anim" data-tex="d(a,b) = \sqrt{\sum_{i=1}^{1024}\,(a_i - b_i)^2}" data-x="460" data-y="368" data-em="26"></g>
 
-    <line class="l a3-rule anim" x1="440" y1="352" x2="940" y2="352"/>
-    <text class="eq a3-cos anim hl" x="440" y="382">d² = 2(1 − cos θ)</text>
-    <text class="s a3-cos anim" x="620" y="374">for unit vectors — so ranking by distance</text>
-    <text class="s a3-cos anim" x="620" y="392">is ranking by angle:  ORDER BY v &lt;=&gt; q</text>
+    <g class="a3-cos anim" data-tex="d^2 = 2\,(1 - \cos\theta)" data-x="768" data-y="352" data-em="23" data-fill="var(--signal)"></g>
+    <text class="s a3-cos anim" x="768" y="382">for unit vectors — distance and angle</text>
+    <text class="s a3-cos anim" x="768" y="400">are the same fact:  ORDER BY m.embedding &lt;=&gt; $1::vector</text>
   </g>
 </svg>
 </div>

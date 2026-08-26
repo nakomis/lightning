@@ -28,7 +28,7 @@ SCENES = [
      'Every message becomes one point in a 1024-dimensional space.'),
     ('why-distance.html',    1, 'similarity-is-distance',  'Why any of this matters',
      'Similarity becomes distance',
-     'Everything lands on one sphere, so "how similar" turns into "how far apart".'),
+     'Two points and the origin make a triangle. Similarity is now an angle.'),
     ('vector-distance.html', 2, 'hypotenuse-becomes-leg',  'Why it generalises',
      'The hypotenuse becomes a leg',
      'Stand a new plane on it and the old distance is just another side.'),
@@ -45,6 +45,53 @@ SCENES = [
      'Gender is a direction',
      'The same displacement, wherever you start. Nobody taught it that.'),
 ]
+
+
+# ---------------------------------------------------------------- LaTeX -----
+TOOLS = HERE / 'tools'
+
+
+def render_tex(markup):
+    """Replace <g data-tex="..."> placeholders with MathJax-rendered SVG paths.
+
+    Done at build time, with fontCache:'none', so the deck carries no font, no
+    runtime library and no network dependency — it has to survive being served
+    from S3 into a sandboxed iframe.
+    """
+    jobs = list(re.finditer(
+        r'<g class="([^"]*)"\s+data-tex="([^"]*)"\s+data-x="([\d.]+)"\s+'
+        r'data-y="([\d.]+)"\s+data-em="([\d.]+)"(?:\s+data-fill="([^"]*)")?\s*></g>',
+        markup))
+    if not jobs:
+        return markup
+
+    import html as _html, json, subprocess
+    payload = [{'id': str(i), 'tex': _html.unescape(m.group(2))} for i, m in enumerate(jobs)]
+    proc = subprocess.run(['node', str(TOOLS / 'tex2svg.mjs')], input=json.dumps(payload),
+                          capture_output=True, text=True, cwd=TOOLS)
+    if proc.returncode != 0:
+        raise SystemExit(f'tex2svg failed:\n{proc.stderr[-1500:]}')
+    rendered = json.loads(proc.stdout)
+
+    out, last = [], 0
+    for i, m in enumerate(jobs):
+        r = rendered[str(i)]
+        cls, x, y, em = m.group(1), float(m.group(3)), float(m.group(4)), float(m.group(5))
+        fill = m.group(6) or 'var(--ink)'
+        scale = em / 1000.0            # MathJax works in 1000ths of an em
+        out.append(markup[last:m.start()])
+        # Two nested groups on purpose. The animated class goes on the outer
+        # one; the placement transform goes on the inner. A CSS `transform` from
+        # a keyframe overrides the SVG transform *attribute* outright, so
+        # putting both on one element silently discards the scale and renders
+        # the glyphs at 1:1 over the whole slide.
+        out.append(
+            f'<g class="{cls}">'
+            f'<g transform="translate({x} {y}) scale({scale:.5f})" '
+            f'fill="{fill}" stroke="none" aria-hidden="true">{r["inner"]}</g></g>')
+        last = m.end()
+    out.append(markup[last:])
+    return ''.join(out)
 
 ACT_RE = r'/\*[^\n]*ACT %d[^\n]*\*/'
 read = lambda n: (HERE / n).read_text()
@@ -222,7 +269,7 @@ def build_scenes():
         src = read(fname)
         head, reduced = css_parts(src)
         rules = namespace(act_rules(src, act), act, n)
-        markup = namespace(act_markup(src, act), act, n)
+        markup = render_tex(namespace(act_markup(src, act), act, n))
         reduced = reduced.replace('.run .act1, .run .act2 { opacity:0 !important; }', '')
         # The tile grid's --i is set in JS (0..31), not in the markup.
         dur = duration(rules, markup + ('--i:31' if 'id="tiles"' in markup else ''))
