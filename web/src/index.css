@@ -2,34 +2,34 @@
 @import "@fontsource-variable/geist";
 
 /*
- * Palette: warm paper and near-black ink, with a single amber accent for the
- * one thing this app is about. Neutrals carry a slight warm bias so they read
- * as chosen rather than as a default grey.
+ * Palette: cool paper and near-black ink, with a single blue accent for the
+ * one thing this app is about. Neutrals carry a slight cool bias toward the
+ * accent so they read as chosen rather than as a default grey.
  */
 @theme {
   --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
 
-  --color-ground: #faf9f6;
+  --color-ground: #f7f8fb;
   --color-surface: #ffffff;
-  --color-raised: #f3f1ec;
-  --color-line: #e2ded4;
-  --color-ink: #17161b;
-  --color-muted: #6b6862;
-  --color-accent: #d9891f;
+  --color-raised: #eef0f5;
+  --color-line: #d8dce6;
+  --color-ink: #16181d;
+  --color-muted: #63687a;
+  --color-accent: #1b62d6;
   --color-accent-ink: #ffffff;
   --color-danger: #b4462f;
 }
 
 @media (prefers-color-scheme: dark) {
   @theme {
-    --color-ground: #131217;
-    --color-surface: #1b1a21;
-    --color-raised: #23222b;
-    --color-line: #33313d;
-    --color-ink: #eeecf2;
-    --color-muted: #9a96a6;
-    --color-accent: #f0ab45;
-    --color-accent-ink: #17161b;
+    --color-ground: #121419;
+    --color-surface: #1a1d24;
+    --color-raised: #22262f;
+    --color-line: #323744;
+    --color-ink: #eceef4;
+    --color-muted: #969cad;
+    --color-accent: #6fa8ff;
+    --color-accent-ink: #16181d;
     --color-danger: #e5765c;
   }
 }
