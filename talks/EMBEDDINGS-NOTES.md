@@ -176,6 +176,13 @@ counter climbs √1, √2, √3… as the triangles land. Say it out loud:
 > the old distance, and the old distance is just a side. Do it 1024 times and
 > you land at √1024 — which is 32."
 
+**Do not get caught out on the numbers.** Both √64 and √1024 = 32 assume every
+step is a leg of length **1**. Real embedding terms are `(aᵢ - bᵢ)²`, which are
+small and arbitrary, so neither figure is a distance anything would actually
+have. They are there because the recursion is easier to watch with unit steps.
+If anyone presses, say "with unit steps" and move on — the argument is the
+recursion, not the arithmetic.
+
 The twist is the honest part: in two dimensions the fan would stay flat and
 start overlapping itself. Each new dimension is perpendicular to everything
 already spent, so the spiral lifts out of the plane instead. (The colours are

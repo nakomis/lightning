@@ -122,7 +122,7 @@
   .run .act2      { animation:fadeOut .40s 11.05s forwards; }
 
   /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
-  .run .a3-tile  { animation:fadeIn .34s calc(11.40s + var(--i)*.055s) both; }
+  .run .a3-tile  { animation:fadeIn .34s calc(11.40s + var(--i)*.024s) both; }
   .run .a3-count { animation:fadeIn .35s 11.45s both; }
   .run .a3-pay   { animation:riseIn .45s 13.35s both; }
   .run .a3-rec   { animation:riseIn .45s 11.50s both; }
@@ -330,7 +330,7 @@
     // twisting the leg a little about the hypotenuse each time lifts the fan
     // into a shell, which is nearer the truth: each dimension is perpendicular
     // to everything already spent.
-    const N = 28, TWIST = 14 * Math.PI / 180, YAW = 35, PITCH = 22;
+    const N = 63, TWIST = 14 * Math.PI / 180, YAW = 35, PITCH = 22;
     const CX = 215, CY = 195, HALF = 140;
     // Rainbow, then the aromantic flag top stripe to bottom. Eleven is coprime
     // with every turn of the spiral, so the rim never lines a colour up with
@@ -426,14 +426,11 @@
     const label = document.getElementById('counter');
     if (label) {
       const legs = [...document.querySelectorAll('.a3-leg')];
-      const roots = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14',
-                     '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26',
-                     '27', '28', '29'];
       let last = -1;
       const poll = () => {
         let n = 0;
         for (const el of legs) if (+getComputedStyle(el).opacity > 0.5) n++;
-        if (n !== last) { last = n; label.textContent = 'd = √' + roots[n]; }
+        if (n !== last) { last = n; label.textContent = 'd = √' + (n + 1); }
         requestAnimationFrame(poll);
       };
       requestAnimationFrame(poll);
