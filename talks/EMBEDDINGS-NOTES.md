@@ -164,8 +164,22 @@ Both steps are exact: 3-4-5 scaled twice. If anyone checks, 14400 + 8100 +
 The recursion, written down: `dₖ² = dₖ₋₁² + xₖ²`. Unroll it and the nesting
 collapses into one sum.
 
-The grid is **1024 tiles, actually drawn** — 32 × 32. Point at the three
-highlighted ones in the corner: *"those are the three we just did by hand."*
+On the left, that recursion is drawn: a **spiral of Theodorus**, run in three
+dimensions. Each triangle stands a unit leg perpendicular to the hypotenuse
+before it — so the hypotenuse becomes a leg and the next one is one dimension
+longer. Exactly the move from the previous slide, on repeat.
+
+The distance from the origin after *n* steps is exactly √n, which is why the
+counter climbs √1, √2, √3… as the triangles land. Say it out loud:
+
+> "Every one of these is the same picture you just saw. Stand a new plane on
+> the old distance, and the old distance is just a side. Do it 1024 times and
+> you land at √1024 — which is 32."
+
+The twist is the honest part: in two dimensions the fan would stay flat and
+start overlapping itself. Each new dimension is perpendicular to everything
+already spent, so the spiral lifts out of the plane instead. (The colours are
+just the colours.)
 
 Then the payoff, and slow down here:
 

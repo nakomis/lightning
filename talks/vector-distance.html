@@ -122,8 +122,9 @@
   .run .act2      { animation:fadeOut .40s 11.05s forwards; }
 
   /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
-  .run .a3-tile  { animation:fadeIn .30s calc(11.40s + var(--i)*.030s) both; }
-  .run .a3-count { animation:fadeIn .35s 12.30s both; }
+  .run .a3-tile  { animation:fadeIn .34s calc(11.40s + var(--i)*.055s) both; }
+  .run .a3-count { animation:fadeIn .35s 11.45s both; }
+  .run .a3-pay   { animation:riseIn .45s 13.35s both; }
   .run .a3-rec   { animation:riseIn .45s 11.50s both; }
   .run .a3-eqn   { animation:riseIn .45s 13.10s both; }
   .run .a3-rule  { animation:fadeIn .40s 14.00s both; }
@@ -284,10 +285,15 @@
 
   <!-- ============================ ACT 3 ============================ -->
   <g class="act3">
-    <!-- 32 x 32 = 1024, drawn in full. Sqrt(1024) = 32, so the grid is also
-         literally the answer when every component is 1. -->
+    <!-- A spiral of Theodorus, run in three dimensions. Each triangle stands a
+         unit leg perpendicular to the hypotenuse before it, so that hypotenuse
+         becomes a leg and the next one is one dimension longer: the recursion
+         on the right, drawn. |d| after n steps is exactly sqrt(n), which is why
+         1024 steps land on 32. -->
     <g id="tiles"></g>
-    <text class="lab a3-count anim" id="counter" x="208" y="392" text-anchor="middle">1024 terms</text>
+    <text class="lab a3-count anim" id="counter" x="215" y="358" text-anchor="middle">d = &#8730;1</text>
+    <text class="s a3-pay anim" x="215" y="384" text-anchor="middle">keep going to 1024 and the walk ends at</text>
+    <g class="a3-pay anim" data-tex="\sqrt{1024} = 32" data-x="148" data-y="414" data-em="21" data-fill="var(--signal)"></g>
 
     <text class="t a3-rec anim" x="440" y="100">every new dimension does the same thing</text>
     <g class="a3-rec anim" data-tex="d_2^{\,2} = x_1^2 + x_2^2"        data-x="460" data-y="140" data-em="20"></g>
@@ -317,59 +323,137 @@
   // 1024 tiles, actually drawn — 32 x 32. The point of the act is that the
   // number is large, so drawing a token handful would undercut it.
   (function buildTiles () {
-    const g = document.getElementById('tiles');
-    // 32 x 32 grid sized to finish inside the 430-unit viewBox: 32 * 9.5 = 304.
-    const N = 32, size = 8, gap = 1.5, x0 = 56, y0 = 66;
-    const frag = document.createDocumentFragment();
-    for (let r = 0; r < N; r++) {
-      for (let c = 0; c < N; c++) {
-        const i = r * N + c;
-        const el = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
-        el.setAttribute('x', x0 + c * (size + gap));
-        el.setAttribute('y', y0 + r * (size + gap));
-        el.setAttribute('width', size);
-        el.setAttribute('height', size);
-        el.setAttribute('class', 'a3-tile anim');
-        // The first three are the axes we just drew by hand, so they carry the
-        // accent — the other 1021 are the same idea, repeated.
-        el.setAttribute('fill', i < 3 ? 'var(--signal)' : 'var(--primary)');
-        el.setAttribute('opacity', '0');
-        // Stagger by ring rather than index, so it grows outward instead of
-        // wiping line by line.
-        el.style.setProperty('--i', Math.max(r, c));
-        frag.appendChild(el);
-      }
+    // A spiral of Theodorus in 3-D. Step n starts from a point at distance
+    // sqrt(n) from the origin and adds a unit leg perpendicular to it, so the
+    // new hypotenuse is sqrt(n+1) — the recursion in the right-hand column,
+    // made out of triangles. In two dimensions every triangle shares a plane;
+    // twisting the leg a little about the hypotenuse each time lifts the fan
+    // into a shell, which is nearer the truth: each dimension is perpendicular
+    // to everything already spent.
+    const N = 28, TWIST = 14 * Math.PI / 180, YAW = 35, PITCH = 22;
+    const CX = 215, CY = 195, HALF = 140;
+    // Pride order. The cycle length (6) shares no factor with any turn of the
+    // spiral, so the rim never lines a colour up with itself.
+    const PRIDE = ['#E4322B', '#F08A24', '#E8B10A', '#2FA84F', '#1B62D6', '#8B4FCF'];
+
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.sqrt(dot(a, a)); return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+    // Walk the spiral. The next leg is the previous one parallel-transported
+    // onto the new perpendicular plane, then rotated by TWIST within it — that
+    // keeps the frame continuous instead of jumping when it is rebuilt.
+    let P = [1, 0, 0], u = [0, 1, 0];
+    const pts = [P];
+    for (let k = 0; k < N; k++) {
+      const Q = [P[0] + u[0], P[1] + u[1], P[2] + u[2]];
+      pts.push(Q);
+      const e = norm(Q);
+      const d = dot(u, e);
+      const b1 = norm([u[0] - d * e[0], u[1] - d * e[1], u[2] - d * e[2]]);
+      const b2 = cross(e, b1);
+      const c = Math.cos(TWIST), sn = Math.sin(TWIST);
+      u = [c * b1[0] + sn * b2[0], c * b1[1] + sn * b2[1], c * b1[2] + sn * b2[2]];
+      P = Q;
     }
-    g.appendChild(frag);
+
+    const cy = Math.cos(YAW * Math.PI / 180), sy = Math.sin(YAW * Math.PI / 180);
+    const cp = Math.cos(PITCH * Math.PI / 180), sp = Math.sin(PITCH * Math.PI / 180);
+    const project = (p) => {
+      const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy;
+      return [x1, p[1] * cp - z1 * sp, p[1] * sp + z1 * cp];
+    };
+
+    const V = pts.map(project), O = project([0, 0, 0]);
+    const all = V.concat([O]);
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const lo = (a) => Math.min.apply(null, a), hi = (a) => Math.max.apply(null, a);
+    const span = Math.max(hi(xs) - lo(xs), hi(ys) - lo(ys));
+    const k = 2 * HALF / span, mx = (hi(xs) + lo(xs)) / 2, my = (hi(ys) + lo(ys)) / 2;
+    // SVG y grows downward, so the projected y is negated on the way out.
+    const T = (p) => [CX + (p[0] - mx) * k, CY - (p[1] - my) * k];
+
+    const zs = V.map((p) => p[2]), zlo = lo(zs), zhi = hi(zs);
+    const ns = 'http://www.w3.org/2000/svg';
+    const make = (name, attrs) => {
+      const el = document.createElementNS(ns, name);
+      for (const a in attrs) el.setAttribute(a, attrs[a]);
+      return el;
+    };
+
+    // Painted back to front so the shell overlaps itself correctly, but the
+    // reveal order is the walk order — --i comes from the step, not the paint.
+    const order = [];
+    for (let i = 0; i < V.length - 1; i++) order.push(i);
+    order.sort((a, b) => (V[a][2] + V[a + 1][2]) - (V[b][2] + V[b + 1][2]));
+
+    const [ox, oy] = T(O);
+    const frag = document.createDocumentFragment();
+    for (const i of order) {
+      const a = T(V[i]), b = T(V[i + 1]), col = PRIDE[i % PRIDE.length];
+      // Depth cue: the far side of the shell sits back rather than competing.
+      const f = zhi > zlo ? 0.45 + 0.55 * (((V[i][2] + V[i + 1][2]) / 2 - zlo) / (zhi - zlo)) : 1;
+      const face = make('polygon', {
+        points: ox.toFixed(1) + ',' + oy.toFixed(1) + ' ' + a[0].toFixed(1) + ',' + a[1].toFixed(1) +
+                ' ' + b[0].toFixed(1) + ',' + b[1].toFixed(1),
+        fill: col, 'fill-opacity': (0.16 * f).toFixed(3),
+        stroke: col, 'stroke-opacity': (0.45 * f).toFixed(3),
+        'stroke-width': 0.9, 'stroke-linejoin': 'round',
+        class: 'a3-tile anim', opacity: 0,
+      });
+      // The unit leg is the beat of the whole act — one new dimension, added.
+      const leg = make('line', {
+        x1: a[0].toFixed(1), y1: a[1].toFixed(1), x2: b[0].toFixed(1), y2: b[1].toFixed(1),
+        stroke: col, 'stroke-opacity': f.toFixed(3), 'stroke-width': 2.6,
+        'stroke-linecap': 'round', class: 'a3-tile a3-leg anim', opacity: 0,
+      });
+      face.style.setProperty('--i', i);
+      leg.style.setProperty('--i', i);
+      frag.appendChild(face);
+      frag.appendChild(leg);
+    }
+    frag.appendChild(make('circle', { cx: ox.toFixed(1), cy: oy.toFixed(1), r: 3.2,
+                                      fill: 'var(--ink)', class: 'a3-tile anim', opacity: 0 }));
+    document.getElementById('tiles').appendChild(frag);
+
+    // The running label counts legs that have actually faded in rather than
+    // reading a clock, so it stays in step at any playback rate — the speed
+    // slider scales the animations, not wall time.
+    const label = document.getElementById('counter');
+    if (label) {
+      const legs = [...document.querySelectorAll('.a3-leg')];
+      const roots = ['1', '2', '3', '4', '5', '6', '7', '8', '9', '10', '11', '12', '13', '14',
+                     '15', '16', '17', '18', '19', '20', '21', '22', '23', '24', '25', '26',
+                     '27', '28', '29'];
+      let last = -1;
+      const poll = () => {
+        let n = 0;
+        for (const el of legs) if (+getComputedStyle(el).opacity > 0.5) n++;
+        if (n !== last) { last = n; label.textContent = 'd = √' + roots[n]; }
+        requestAnimationFrame(poll);
+      };
+      requestAnimationFrame(poll);
+    }
   })();
 
   const fig = document.getElementById('fig');
   const clock = document.getElementById('clock');
-  const counter = document.getElementById('counter');
   const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let raf = 0, t0 = 0;
 
   function tick (now) {
     const t = (now - t0) / 1000;
     clock.textContent = Math.min(t, 15).toFixed(1) + 's';
-    // The counter races 3 → 1024 as the tiles land, so the number is seen to
-    // grow rather than merely asserted.
-    if (t >= 10.35 && t < 12.4) {
-      const p = Math.min((t - 10.35) / 1.6, 1);
-      const n = Math.round(3 + (1024 - 3) * p * p);
-      counter.textContent = n + (n === 1024 ? ' terms' : ' terms');
-    }
     if (t < 15.4) raf = requestAnimationFrame(tick);
   }
 
   function play () {
     cancelAnimationFrame(raf);
     fig.classList.remove('run');
-    counter.textContent = '3 terms';
     void fig.getBoundingClientRect();      // force reflow so the restart takes
     fig.classList.add('run');
     if (!reduced) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
-    else { clock.textContent = 'static'; counter.textContent = '1024 terms'; }
+    else { clock.textContent = 'static'; }
   }
 
   document.getElementById('replay').addEventListener('click', play);
