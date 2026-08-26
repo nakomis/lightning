@@ -123,8 +123,7 @@
 
   /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
   .run .a3-tile  { animation:fadeIn .34s calc(11.40s + var(--i)*.024s) both; }
-  .run .a3-count { animation:fadeIn .35s 11.45s both; }
-  .run .a3-pay   { animation:riseIn .45s 13.35s both; }
+  .run .a3-cap   { animation:riseIn .45s 13.35s both; }
   .run .a3-rec   { animation:riseIn .45s 11.50s both; }
   .run .a3-eqn   { animation:riseIn .45s 13.10s both; }
   .run .a3-rule  { animation:fadeIn .40s 14.00s both; }
@@ -291,9 +290,8 @@
          on the right, drawn. |d| after n steps is exactly sqrt(n), which is why
          1024 steps land on 32. -->
     <g id="tiles"></g>
-    <text class="lab a3-count anim" id="counter" x="215" y="358" text-anchor="middle">d = &#8730;1</text>
-    <text class="s a3-pay anim" x="215" y="384" text-anchor="middle">keep going to 1024 and the walk ends at</text>
-    <g class="a3-pay anim" data-tex="\sqrt{1024} = 32" data-x="148" data-y="414" data-em="21" data-fill="var(--signal)"></g>
+    <text class="t a3-cap anim" x="215" y="368" text-anchor="middle">one triangle per dimension</text>
+    <text class="s a3-cap anim" x="215" y="394" text-anchor="middle">each leg perpendicular to every one before it</text>
 
     <text class="t a3-rec anim" x="440" y="100">every new dimension does the same thing</text>
     <g class="a3-rec anim" data-tex="d_2^{\,2} = x_1^2 + x_2^2"        data-x="460" data-y="140" data-em="20"></g>
@@ -420,21 +418,6 @@
                                       fill: 'var(--ink)', class: 'a3-tile anim', opacity: 0 }));
     document.getElementById('tiles').appendChild(frag);
 
-    // The running label counts legs that have actually faded in rather than
-    // reading a clock, so it stays in step at any playback rate — the speed
-    // slider scales the animations, not wall time.
-    const label = document.getElementById('counter');
-    if (label) {
-      const legs = [...document.querySelectorAll('.a3-leg')];
-      let last = -1;
-      const poll = () => {
-        let n = 0;
-        for (const el of legs) if (+getComputedStyle(el).opacity > 0.5) n++;
-        if (n !== last) { last = n; label.textContent = 'd = √' + (n + 1); }
-        requestAnimationFrame(poll);
-      };
-      requestAnimationFrame(poll);
-    }
   })();
 
   const fig = document.getElementById('fig');

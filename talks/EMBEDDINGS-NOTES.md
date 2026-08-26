@@ -169,19 +169,18 @@ dimensions. Each triangle stands a unit leg perpendicular to the hypotenuse
 before it — so the hypotenuse becomes a leg and the next one is one dimension
 longer. Exactly the move from the previous slide, on repeat.
 
-The distance from the origin after *n* steps is exactly √n, which is why the
-counter climbs √1, √2, √3… as the triangles land. Say it out loud:
+Say it out loud, over the triangles:
 
 > "Every one of these is the same picture you just saw. Stand a new plane on
-> the old distance, and the old distance is just a side. Do it 1024 times and
-> you land at √1024 — which is 32."
+> the old distance, and the old distance is just a side. There is no step
+> where it stops working, so there is no reason to stop at three."
 
-**Do not get caught out on the numbers.** Both √64 and √1024 = 32 assume every
-step is a leg of length **1**. Real embedding terms are `(aᵢ - bᵢ)²`, which are
-small and arbitrary, so neither figure is a distance anything would actually
-have. They are there because the recursion is easier to watch with unit steps.
-If anyone presses, say "with unit steps" and move on — the argument is the
-recursion, not the arithmetic.
+**There are deliberately no numbers on this one.** An earlier cut had the
+running distance climbing √1, √2, √3… and finishing on √1024 = 32, which is
+tidy and means nothing: it only holds if every step is a leg of length exactly
+1, and real terms are `(aᵢ - bᵢ)²` — small and arbitrary. The slide is about
+Pythagoras surviving the trip into *n* dimensions, not about arithmetic, so
+the numbers went and the construction stayed.
 
 The twist is the honest part: in two dimensions the fan would stay flat and
 start overlapping itself. Each new dimension is perpendicular to everything
