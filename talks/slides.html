@@ -121,9 +121,14 @@
   .cols.tight { gap: calc(var(--u) * 1.4); }
 
   ul.plain { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: calc(var(--u) * 1.15); max-width: 52ch; }
-  ul.plain li { display: grid; grid-template-columns: calc(var(--u) * 2.4) 1fr; gap: calc(var(--u) * 0.8); align-items: baseline; }
+  /* A hanging indent, NOT a two-column grid. Grid blockifies every child, so
+     any <strong> or <code> in the item became its own grid cell: the marker
+     took column one, the bold lead-in took column two, and the prose after it
+     wrapped into the 32px column one word at a time. */
+  ul.plain li { position: relative; padding-left: calc(var(--u) * 3.2); }
   ul.plain li::before {
-    content: "→"; font-family: var(--f-mono); color: var(--signal);
+    content: "→"; position: absolute; left: 0; top: 0;
+    font-family: var(--f-mono); color: var(--signal);
     font-size: 0.86em;
   }
   ul.plain.numbered { counter-reset: n; }
@@ -280,6 +285,9 @@
   .rail button:hover:not(:disabled) { color: var(--ink); border-color: var(--muted); }
   .rail button:disabled { opacity: .35; cursor: default; }
   .rail button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
+  .rail .speed { display: flex; align-items: center; gap: calc(var(--u) * 0.5); }
+  .rail .speed input[type=range] { width: calc(var(--u) * 11); accent-color: var(--signal); }
+  .rail .speed output { font-variant-numeric: tabular-nums; min-width: 3.6em; }
 
   .btns { position: fixed; top: calc(var(--u) * 1.6); right: calc(var(--u) * 2); display: flex; gap: calc(var(--u) * 0.6); }
   .btns button {
@@ -619,8 +627,12 @@ git clone https://github.com/nakomis/claude-chats
         <p>"Why is it done this way?" — the reasoning, in your own words, with the alternatives you rejected.</p>
       </div>
       <div class="card">
-        <span class="tag">Onboarding</span>
-        <p>New to a codebase someone else drove Claude through? Their sessions are searchable too.</p>
+        <span class="tag">Generating docs</span>
+        <p>The design doc you never wrote. It can be assembled from the sessions where the decisions were actually made.</p>
+      </div>
+      <div class="card">
+        <span class="tag">Appraisal prep</span>
+        <p>What did you actually ship in the last six months, and why? All of it is in there, with the reasoning attached.</p>
       </div>
     </div>
   </section>
@@ -655,6 +667,11 @@ git clone https://github.com/nakomis/claude-chats
   <button id="next"  title="Next (&rarr;)"      aria-label="Next slide">&rarr;</button>
   <button id="last"  title="Last slide (End)"   aria-label="Last slide">&#8677;</button>
   <span class="track"><span class="fill" id="fill"></span></span>
+  <span class="speed">
+    <label for="rate">speed</label>
+    <input id="rate" type="range" min="0.10" max="1.50" step="0.01" value="1">
+    <output id="rateout">1.00&times;</output>
+  </span>
 </div>
 
 <script>
@@ -676,7 +693,26 @@ git clone https://github.com/nakomis/claude-chats
       bFirst.disabled = bPrev.disabled = (i === 0);
       bLast.disabled = bNext.disabled = (i === slides.length - 1);
       try { location.hash = String(i + 1); } catch (e) {}
+      // After the class flip, so the animations this slide just started exist.
+      requestAnimationFrame(function () { applyRate(rate); });
     }
+
+    // Entering a slide builds that slide's animations fresh, always at 1x, so
+    // the rate has to be reapplied on every move rather than set once.
+    var rateEl = document.getElementById("rate");
+    var rateOut = document.getElementById("rateout");
+    var rate = 1;
+    try { var savedRate = localStorage.getItem("cm-rate"); if (savedRate) rate = +savedRate; } catch (e) {}
+    rateEl.value = rate;
+
+    function applyRate(r) {
+      rate = r;
+      rateOut.textContent = r.toFixed(2) + "\u00d7";
+      document.getAnimations().forEach(function (a) { a.playbackRate = r; });
+      try { localStorage.setItem("cm-rate", String(r)); } catch (err) {}
+    }
+    rateEl.addEventListener("input", function () { applyRate(+rateEl.value); });
+    rateEl.addEventListener("click", function (e) { e.stopPropagation(); });
 
     function next() { show(i + 1); }
     function prev() { show(i - 1); }
