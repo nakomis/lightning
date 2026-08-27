@@ -221,7 +221,10 @@
          the whole idea — it is what makes the n-dimensional case obvious rather
          than asserted.
 
-         Axonometric projection: X right, Y into the page, Z up.
+         Axonometric projection: X right, Y into the page, Z up. A right angle
+         in the scene therefore projects to a parallelogram, not a square, so
+         both .ra markers are built from the projected edge directions rather
+         than drawn axis-aligned.
          x=120, y=90 -> 150   then   150, z=200 -> 250.  Both exact. -->
 
     <!-- the two planes -->
@@ -237,7 +240,7 @@
     </g>
     <text class="lab a2-t1lab anim" x="222" y="334" text-anchor="middle">x = 120</text>
     <text class="lab a2-t1lab anim" x="272" y="372">y = 90</text>
-    <path class="ra a2-t1lab anim" d="M281.6 340 l-8.6 5.8 l-6.5 -5.8"/>
+    <path class="ra a2-t1lab anim" d="M282.0 340.0 L272.0 346.7 L284.0 346.7"/>
 
     <!-- ---- the shared edge: drawn once, and never redrawn ---- -->
     <path class="l acc shared a2-share anim" d="M150 340 L229.2 383.2"/>
@@ -260,7 +263,7 @@
       <path class="l" style="stroke-dasharray:240" d="M229.2 383.2 L229.2 143.2"/>
     </g>
     <text class="lab a2-legz anim" x="236" y="266">z = 200</text>
-    <path class="ra a2-legz anim" d="M229.2 371.2 h-11 v11"/>
+    <path class="ra a2-legz anim" d="M218.7 377.5 L218.7 365.5 L229.2 371.2"/>
 
     <g class="a2-hyp3 anim" style="--len:213">
       <path class="l acc" style="stroke-dasharray:213" d="M150 340 L229.2 143.2"/>
