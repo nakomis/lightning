@@ -1,6 +1,6 @@
 # Speaker notes — Conversation Memory
 
-15 minutes. Roughly 13 minutes of talking, 2 for questions. Timings are per slide,
+15 minutes. Roughly 13½ minutes of talking, 1½ for questions. Timings are per slide,
 cumulative in the right-hand column.
 
 If you are running long, **cut slide 3 and slide 9** — the talk still works. If you
@@ -19,10 +19,9 @@ are running short, the demo on slide 5 will absorb as much time as you give it.
 | 9 | The first version lost messages *(cuttable)* | 1:00 | 10:30 |
 | 10 | Split what must not fail | 1:00 | 11:30 |
 | 11 | One script | 0:45 | 12:15 |
-| 12 | What it costs | 0:45 | 13:00 |
-| 13 | Where it earns its keep | 0:45 | 13:45 |
-| 14 | Take one thing away | 0:30 | 14:15 |
-| 15 | Questions | — | — |
+| 12 | Where it earns its keep | 0:45 | 13:00 |
+| 13 | Take one thing away | 0:30 | 13:30 |
+| 14 | Questions | — | — |
 
 ---
 
@@ -168,26 +167,14 @@ That's the whole cost."*
 > Restart Claude Code and it's already recording. Re-running is always safe, so if
 > you want to change provider or mode later you just run it again.
 
-## 12 · What it costs — 0:45
-
-Being honest here is what makes the recommendation land.
-
-> Vectors aren't free — budget a few hundred megabytes a year if you're heavy.
-> There's a couple of minutes' lag before something is searchable, unless you
-> force a drain.
->
-> And the one to actually think about: it records everything you type at Claude,
-> including what you paste. That's the point of it, but know that before you put
-> it on a work machine.
-
-## 13 · Where it earns its keep — 0:45
+## 12 · Where it earns its keep — 0:45
 
 Pick **two** of the four and speak to them; don't read all four.
 
 Recommended pair: *post-compaction* (universal pain) and *decision archaeology*
 (the one that makes managers interested).
 
-## 14 · Take one thing away — 0:30
+## 13 · Take one thing away — 0:30
 
 > Even if you never install this, take this bit away. We are all generating an
 > enormous amount of genuinely good reasoning through these tools, and almost all
@@ -195,7 +182,7 @@ Recommended pair: *post-compaction* (universal pain) and *decision archaeology*
 >
 > It's one Docker container to stop doing that.
 
-## 15 · Questions
+## 14 · Questions
 
 ---
 
