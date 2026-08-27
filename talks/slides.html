@@ -16,7 +16,7 @@
     --primary:  #4C6285;
     --on-primary: #FFFFFF;
     --signal:   #1B62D6;
-    --signal-soft: #DCE7FA;
+    --signal-soft: #DCE7FA; --miss: #B02A1E;
 
     --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
     --f-body:    "Public Sans", "Helvetica Neue", Arial, sans-serif;
@@ -36,7 +36,7 @@
       --primary: #93A9C9;
       --on-primary: #10131B;
       --signal:  #6FA8FF;
-      --signal-soft: #16283F;
+      --signal-soft: #16283F; --miss: #F0796B;
     }
   }
   :root[data-theme="dark"] {
@@ -49,7 +49,7 @@
     --primary: #93A9C9;
     --on-primary: #10131B;
     --signal:  #6FA8FF;
-    --signal-soft: #16283F;
+    --signal-soft: #16283F; --miss: #F0796B;
   }
 
   * { box-sizing: border-box; }
@@ -198,6 +198,14 @@
   .dg-arrow { fill: var(--muted); stroke: none; }
   .dg-arrow.acc { fill: var(--signal); }
   .dg-lab { fill: var(--muted); font-family: var(--f-mono); font-size: 10px; }
+  .dg-box.miss { stroke: var(--miss); }
+  .dg-l.miss { stroke: var(--miss); stroke-width: 2; }
+  .dg-arrow.miss { fill: var(--miss); }
+  .dg-lab.miss { fill: var(--miss); }
+  .dg-bar { fill: var(--muted); opacity: .38; }
+  .dg-bar.acc { fill: var(--signal); opacity: 1; }
+  .dg-bar.empty { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
+  .dg-wall { stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; fill: none; }
 
   /* ---- footer rail ---------------------------------------------------- */
   .rail {
@@ -261,12 +269,50 @@
   <section class="slide">
     <div class="eyebrow">The problem</div>
     <h2>You have had this conversation before.</h2>
-    <ul class="plain">
-      <li>Context window fills. Auto-compaction fires. The reasoning is gone, the summary is not the same thing.</li>
-      <li>New day, new session — you re-explain the codebase, the conventions, the constraints.</li>
-      <li>Six weeks ago you and Claude solved this exact bug. Neither of you remembers how.</li>
-      <li>"Why is it done this way?" The answer was in a session you closed in March.</li>
-    </ul>
+    <div class="diagram">
+      <svg viewBox="0 0 760 250" role="img" aria-label="Four sessions along a timeline, March to today. The first three are full of messages, one of them highlighted as the moment a decision was explained. Today's session holds only the question just typed and is otherwise empty. A dashed boundary stands between each session, and an arrow from today reaching back is stopped dead at the nearest one.">
+        <text class="dg-s" x="102" y="34" text-anchor="middle">March</text>
+        <rect class="dg-box" x="20" y="44" width="165" height="120" rx="5"/>
+        <rect class="dg-bar" x="35" y="62" width="120" height="8" rx="4"/>
+        <rect class="dg-bar" x="35" y="80" width="95" height="8" rx="4"/>
+        <rect class="dg-bar acc" x="35" y="98" width="134" height="8" rx="4"/>
+        <rect class="dg-bar" x="35" y="116" width="80" height="8" rx="4"/>
+        <rect class="dg-bar" x="35" y="134" width="110" height="8" rx="4"/>
+        <text class="dg-s" x="287" y="34" text-anchor="middle">April</text>
+        <rect class="dg-box" x="205" y="44" width="165" height="120" rx="5"/>
+        <rect class="dg-bar" x="220" y="62" width="110" height="8" rx="4"/>
+        <rect class="dg-bar" x="220" y="80" width="130" height="8" rx="4"/>
+        <rect class="dg-bar" x="220" y="98" width="85" height="8" rx="4"/>
+        <rect class="dg-bar" x="220" y="116" width="120" height="8" rx="4"/>
+        <rect class="dg-bar" x="220" y="134" width="70" height="8" rx="4"/>
+        <text class="dg-s" x="472" y="34" text-anchor="middle">June</text>
+        <rect class="dg-box" x="390" y="44" width="165" height="120" rx="5"/>
+        <rect class="dg-bar" x="405" y="62" width="95" height="8" rx="4"/>
+        <rect class="dg-bar" x="405" y="80" width="120" height="8" rx="4"/>
+        <rect class="dg-bar" x="405" y="98" width="110" height="8" rx="4"/>
+        <rect class="dg-bar" x="405" y="116" width="135" height="8" rx="4"/>
+        <rect class="dg-bar" x="405" y="134" width="90" height="8" rx="4"/>
+        <text class="dg-s" x="657" y="34" text-anchor="middle">today</text>
+        <rect class="dg-box pri" x="575" y="44" width="165" height="120" rx="5"/>
+        <rect class="dg-bar acc" x="590" y="62" width="118" height="8" rx="4"/>
+        <rect class="dg-bar empty" x="590" y="80" width="95" height="8" rx="4"/>
+        <rect class="dg-bar empty" x="590" y="98" width="130" height="8" rx="4"/>
+        <rect class="dg-bar empty" x="590" y="116" width="80" height="8" rx="4"/>
+        <rect class="dg-bar empty" x="590" y="134" width="110" height="8" rx="4"/>
+        <path class="dg-wall" d="M195 40 L195 210"/>
+        <path class="dg-wall" d="M380 40 L380 210"/>
+        <path class="dg-wall" d="M565 40 L565 210"/>
+
+        <text class="dg-lab" x="102" y="182" text-anchor="middle">"why it's done this way"</text>
+        <text class="dg-lab" x="657" y="182" text-anchor="middle">starts from nothing</text>
+
+        <path class="dg-l miss" d="M648 208 L580 208"/>
+        <polygon class="dg-arrow miss" points="572,208 582,203 582,213"/>
+        <path class="dg-l miss" d="M565 194 L565 222"/>
+        <text class="dg-lab miss" x="430" y="212" text-anchor="middle">nothing crosses a session boundary</text>
+      </svg>
+    </div>
+    <p class="lead">The answer exists. It is just on the wrong side of a wall — and so is every other thing you worked out together.</p>
   </section>
 
   <!-- 3 ................................................................. -->

@@ -38,8 +38,14 @@ Don't explain the architecture yet. Set the problem first.
 
 ## 2 · You have had this conversation before — 1:15
 
-Work down the four, but **land the third one properly** — it's the one that gets
-nods.
+The slide is a picture now, not a list — four sessions on a timeline, three of
+them full, today's one empty, and a wall between each. **Everything below is
+yours to say, not theirs to read.** Point at the highlighted message in March
+when you say "the answer exists", and at the blocked arrow on "wrong side of a
+wall".
+
+Work down the four beats, but **land the third one properly** — it's the one
+that gets nods.
 
 > The context window fills up, auto-compaction fires, and you get a summary. The
 > summary is not the conversation. All the reasoning about *why* you rejected the
