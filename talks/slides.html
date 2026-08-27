@@ -2,7 +2,7 @@
 <title>Conversation Memory</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400;12..96,600;12..96,800&family=Public+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Public+Sans:ital,wght@0,400;0,500;0,700;1,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
 
 <style>
   /* ---- tokens: light is the base, both dark states override only these ---- */
@@ -18,7 +18,7 @@
     --signal:   #1B62D6;
     --signal-soft: #DCE7FA; --miss: #B02A1E;
 
-    --f-display: "Bricolage Grotesque", "Helvetica Neue", Arial, sans-serif;
+    --f-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
     --f-body:    "Public Sans", "Helvetica Neue", Arial, sans-serif;
     --f-mono:    "IBM Plex Mono", ui-monospace, "SF Mono", Menlo, monospace;
 
@@ -199,6 +199,7 @@
   .dg-arrow.acc { fill: var(--signal); }
   .dg-lab { fill: var(--muted); font-family: var(--f-mono); font-size: 10px; }
   .dg-box.miss { stroke: var(--miss); }
+  .dg-box.hollow { fill: none; }
   .dg-l.miss { stroke: var(--miss); stroke-width: 2; }
   .dg-arrow.miss { fill: var(--miss); }
   .dg-lab.miss { fill: var(--miss); }
@@ -206,6 +207,52 @@
   .dg-bar.acc { fill: var(--signal); opacity: 1; }
   .dg-bar.empty { fill: none; stroke: var(--line); stroke-width: 1; stroke-dasharray: 3 3; }
   .dg-wall { stroke: var(--line); stroke-width: 1; stroke-dasharray: 4 4; fill: none; }
+
+  /* ---- slide 10: the split, animated ---------------------------------- */
+  /* Inactive slides are display:none, so entering a slide restarts every
+     animation on it. That is the whole scheduler — there is no JS timeline. */
+  .dg-dot { fill: var(--signal); }
+  .dg-tick { fill: var(--signal); opacity: .55; }
+  .dg-brace { stroke: var(--line); stroke-width: 1.5; fill: none; }
+  @keyframes an-fade { from { opacity: 0 } to { opacity: 1 } }
+  @keyframes an-out  { from { opacity: 1 } to { opacity: 0 } }
+  @keyframes an-runA {
+    0%   { transform: translateX(0);     opacity: 0 }
+    6%   { opacity: 1 }
+    27%  { transform: translateX(127px) }
+    45%  { transform: translateX(127px) }
+    92%  { transform: translateX(516px); opacity: 1 }
+    100% { transform: translateX(516px); opacity: 0 }
+  }
+  @keyframes an-runB {
+    0%   { transform: translateX(0); opacity: 0 }
+    10%  { opacity: 1 }
+    100% { transform: translateX(127px); opacity: 1 }
+  }
+  @keyframes an-runC {
+    0%   { transform: translateX(0); opacity: 0 }
+    8%   { opacity: 1 }
+    92%  { transform: translateX(389px); opacity: 1 }
+    100% { transform: translateX(389px); opacity: 0 }
+  }
+  .slide[data-active] .an-b1  { animation: an-fade .40s .10s both }
+  .slide[data-active] .an-b2  { animation: an-fade .40s .25s both }
+  .slide[data-active] .an-b3  { animation: an-fade .40s .40s both }
+  .slide[data-active] .an-b4  { animation: an-fade .40s .55s both }
+  .slide[data-active] .an-br  { animation: an-fade .45s .80s both }
+  .slide[data-active] .an-a   { animation: an-runA 2.2s 1.20s both }
+  .slide[data-active] .an-down{ animation: an-fade .35s 3.60s both, an-out .35s 7.00s both }
+  .slide[data-active] .an-b   { animation: an-runB 1.0s 3.90s both, an-out .30s 7.20s both }
+  .slide[data-active] .an-q1  { animation: an-fade .30s 4.60s both, an-out .30s 7.20s both }
+  .slide[data-active] .an-q2  { animation: an-fade .30s 4.90s both, an-out .30s 7.20s both }
+  .slide[data-active] .an-q3  { animation: an-fade .30s 5.20s both, an-out .30s 7.20s both }
+  .slide[data-active] .an-c   { animation: an-runC 1.0s 7.30s both }
+  .slide[data-active] .an-cap { animation: an-fade .45s 8.40s both }
+  @media (prefers-reduced-motion: reduce) {
+    .slide[data-active] [class*="an-"] { animation: none !important; opacity: 1 }
+    .slide[data-active] .an-down, .slide[data-active] .an-b,
+    .slide[data-active] [class*="an-q"] { opacity: 0 }
+  }
 
   /* ---- footer rail ---------------------------------------------------- */
   .rail {
@@ -467,17 +514,61 @@
   <section class="slide">
     <div class="eyebrow">The fix</div>
     <h2>Split what must not fail from what may.</h2>
-    <div class="cols">
-      <div class="card">
-        <span class="tag">Must not fail</span>
-        <h3>Capture</h3>
-        <p>The hook appends to a local SQLite file. No network, no credentials, no daemon — nothing that can be "down".</p>
-      </div>
-      <div class="card">
-        <span class="tag">Allowed to fail</span>
-        <h3>Delivery</h3>
-        <p>A drainer moves it into Postgres later. If that fails, the queue simply grows and drains next time.</p>
-      </div>
+    <div class="diagram">
+      <svg viewBox="0 0 760 250" role="img" aria-label="A hook writes to a local SQLite outbox, which a drainer moves into Postgres. A message travels the whole way. Postgres then goes down: the hook still writes to the outbox successfully, the drainer cannot deliver, and messages queue. When Postgres returns the queue drains. Capture must not fail; delivery is allowed to.">
+        <g class="an-b1">
+          <rect class="dg-box" x="8" y="78" width="150" height="56" rx="5"/>
+          <text class="dg-t" x="83" y="102" text-anchor="middle">hook</text>
+          <text class="dg-s" x="83" y="120" text-anchor="middle">on every prompt</text>
+        </g>
+        <g class="an-b2">
+          <rect class="dg-box pri" x="210" y="78" width="150" height="56" rx="5"/>
+          <text class="dg-t" x="285" y="102" text-anchor="middle">SQLite outbox</text>
+          <text class="dg-s" x="285" y="120" text-anchor="middle">a file on your disk</text>
+        </g>
+        <g class="an-b3">
+          <rect class="dg-box" x="412" y="78" width="150" height="56" rx="5"/>
+          <text class="dg-t" x="487" y="102" text-anchor="middle">drainer</text>
+          <text class="dg-s" x="487" y="120" text-anchor="middle">every two minutes</text>
+        </g>
+        <g class="an-b4">
+          <rect class="dg-box acc" x="596" y="78" width="156" height="56" rx="5"/>
+          <text class="dg-t" x="674" y="102" text-anchor="middle">PostgreSQL</text>
+          <text class="dg-s" x="674" y="120" text-anchor="middle">docker · localhost:5433</text>
+        </g>
+
+        <g class="an-br">
+          <path class="dg-brace" d="M8 62 L8 54 L360 54 L360 62"/>
+          <text class="dg-lab" x="184" y="44" text-anchor="middle">must not fail</text>
+          <path class="dg-brace" d="M412 62 L412 54 L752 54 L752 62"/>
+          <text class="dg-lab" x="582" y="44" text-anchor="middle">allowed to fail</text>
+        </g>
+
+        <path class="dg-l an-b2" d="M158 106 L198 106"/>
+        <polygon class="dg-arrow an-b2" points="204,106 196,102 196,110"/>
+        <path class="dg-l an-b3" d="M360 106 L400 106"/>
+        <polygon class="dg-arrow an-b3" points="406,106 398,102 398,110"/>
+        <path class="dg-l an-b4" d="M562 106 L584 106"/>
+        <polygon class="dg-arrow an-b4" points="590,106 582,102 582,110"/>
+
+        <g class="an-a"><circle class="dg-dot" cx="158" cy="106" r="6"/></g>
+        <g class="an-b"><circle class="dg-dot" cx="158" cy="106" r="6"/></g>
+        <g class="an-c"><circle class="dg-dot" cx="285" cy="106" r="6"/></g>
+
+        <g class="an-down">
+          <rect class="dg-box miss hollow" x="596" y="78" width="156" height="56" rx="5"/>
+          <text class="dg-lab miss" x="674" y="152" text-anchor="middle">down</text>
+          <path class="dg-l miss" d="M562 106 L584 106"/>
+          <path class="dg-l miss" d="M568 100 L580 112 M580 100 L568 112"/>
+        </g>
+
+        <rect class="dg-tick an-q1" x="222" y="150" width="34" height="7" rx="3.5"/>
+        <rect class="dg-tick an-q2" x="262" y="150" width="34" height="7" rx="3.5"/>
+        <rect class="dg-tick an-q3" x="302" y="150" width="34" height="7" rx="3.5"/>
+        <text class="dg-lab an-q3" x="285" y="176" text-anchor="middle">the queue just grows</text>
+
+        <text class="dg-lab an-cap" x="380" y="212" text-anchor="middle">nothing is lost — it drains when Postgres comes back</text>
+      </svg>
     </div>
     <p class="lead"><strong>Durable mode</strong> is the default for exactly this reason. <strong>Direct mode</strong> — write straight through — is one flag away if you'd rather have fewer moving parts.</p>
   </section>
