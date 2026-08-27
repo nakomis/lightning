@@ -213,7 +213,18 @@
   .rail .track { flex: 1; height: 2px; background: var(--line); position: relative; }
   .rail .fill { position: absolute; inset: 0 auto 0 0; background: var(--signal); width: 0; transition: width .28s ease; }
   @media (prefers-reduced-motion: reduce) { .rail .fill { transition: none; } }
-  .rail .count { font-variant-numeric: tabular-nums; }
+  .rail .count { font-variant-numeric: tabular-nums; min-width: 5.5em; text-align: center; }
+  .rail .deckname { white-space: nowrap; }
+  .rail button {
+    font-family: var(--f-mono); font-size: calc(var(--u) * 1.15);
+    background: transparent; color: var(--muted);
+    border: 1px solid var(--line); border-radius: 4px;
+    padding: 0 calc(var(--u) * 0.7);
+    cursor: pointer; line-height: 1.9;
+  }
+  .rail button:hover:not(:disabled) { color: var(--ink); border-color: var(--muted); }
+  .rail button:disabled { opacity: .35; cursor: default; }
+  .rail button:focus-visible { outline: 2px solid var(--signal); outline-offset: 2px; }
 
   .btns { position: fixed; top: calc(var(--u) * 1.6); right: calc(var(--u) * 2); display: flex; gap: calc(var(--u) * 0.6); }
   .btns button {
@@ -500,9 +511,13 @@ git clone https://github.com/nakomis/claude-chats
 </div>
 
 <div class="rail">
-  <span>Conversation Memory</span>
-  <span class="track"><span class="fill" id="fill"></span></span>
+  <span class="deckname">Conversation Memory</span>
+  <button id="first" title="First slide (Home)" aria-label="First slide">&#8676;</button>
+  <button id="prev"  title="Previous (&larr;)"  aria-label="Previous slide">&larr;</button>
   <span class="count" id="count">1 / 15</span>
+  <button id="next"  title="Next (&rarr;)"      aria-label="Next slide">&rarr;</button>
+  <button id="last"  title="Last slide (End)"   aria-label="Last slide">&#8677;</button>
+  <span class="track"><span class="fill" id="fill"></span></span>
 </div>
 
 <script>
@@ -510,6 +525,8 @@ git clone https://github.com/nakomis/claude-chats
     var slides = Array.prototype.slice.call(document.querySelectorAll(".slide"));
     var fill = document.getElementById("fill");
     var count = document.getElementById("count");
+    var bFirst = document.getElementById("first"), bPrev = document.getElementById("prev");
+    var bNext = document.getElementById("next"), bLast = document.getElementById("last");
     var i = 0;
 
     function show(n) {
@@ -519,11 +536,21 @@ git clone https://github.com/nakomis/claude-chats
       });
       fill.style.width = ((i + 1) / slides.length * 100) + "%";
       count.textContent = (i + 1) + " / " + slides.length;
+      bFirst.disabled = bPrev.disabled = (i === 0);
+      bLast.disabled = bNext.disabled = (i === slides.length - 1);
       try { location.hash = String(i + 1); } catch (e) {}
     }
 
     function next() { show(i + 1); }
     function prev() { show(i - 1); }
+
+    // stopPropagation throughout: the deck advances on any click that is not a
+    // control, and without it every arrow press would also fire that handler.
+    [[bFirst, 0], [bLast, slides.length - 1]].forEach(function (pair) {
+      pair[0].addEventListener("click", function (e) { e.stopPropagation(); show(pair[1]); });
+    });
+    bPrev.addEventListener("click", function (e) { e.stopPropagation(); prev(); });
+    bNext.addEventListener("click", function (e) { e.stopPropagation(); next(); });
 
     document.addEventListener("keydown", function (e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return;
