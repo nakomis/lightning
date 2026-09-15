@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@import "@fontsource-variable/geist";
+
+/*
+ * Palette: warm paper and near-black ink, with a single amber accent for the
+ * one thing this app is about. Neutrals carry a slight warm bias so they read
+ * as chosen rather than as a default grey.
+ */
+@theme {
+  --font-sans: "Geist Variable", ui-sans-serif, system-ui, sans-serif;
+
+  --color-ground: #faf9f6;
+  --color-surface: #ffffff;
+  --color-raised: #f3f1ec;
+  --color-line: #e2ded4;
+  --color-ink: #17161b;
+  --color-muted: #6b6862;
+  --color-accent: #d9891f;
+  --color-accent-ink: #ffffff;
+  --color-danger: #b4462f;
+}
+
+@media (prefers-color-scheme: dark) {
+  @theme {
+    --color-ground: #131217;
+    --color-surface: #1b1a21;
+    --color-raised: #23222b;
+    --color-line: #33313d;
+    --color-ink: #eeecf2;
+    --color-muted: #9a96a6;
+    --color-accent: #f0ab45;
+    --color-accent-ink: #17161b;
+    --color-danger: #e5765c;
+  }
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  background: var(--color-ground);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Visible keyboard focus everywhere, since much of this is driven from a lectern. */
+:focus-visible {
+  outline: 2px solid var(--color-accent);
+  outline-offset: 2px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    /* biome-ignore-start lint/complexity/noImportantStyles: someone who has asked
+       their OS to reduce motion must win over any animation declared later or
+       inline, which is the one case !important is the correct tool for. */
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    /* biome-ignore-end lint/complexity/noImportantStyles: see above */
+  }
+}

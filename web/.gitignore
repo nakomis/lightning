@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.tsbuildinfo
+
+# Written by scripts/set-config.sh from SSM at build time. The template beside
+# it is what is tracked; this copy holds real environment values.
+src/config/config.json

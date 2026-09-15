@@ -110,6 +110,46 @@ jobs:
         working-directory: infra
         run: pnpm ci-synth-sandbox
 
+  # ── Web ────────────────────────────────────────────────────────────────────
+  web:
+    name: Web (SPA)
+    runs-on: ubuntu-latest
+    needs: changes
+    if: needs.changes.outputs.web == 'true' || github.event_name == 'workflow_dispatch'
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      # config.json is gitignored and written from SSM at deploy time. This job
+      # has no AWS access, so seed the committed template purely to satisfy the
+      # `import './config.json'` that config.ts does at test and build time.
+      - name: Seed placeholder config
+        working-directory: web
+        run: cp src/config/config.json.template src/config/config.json
+      - name: Lint + format check (Biome)
+        working-directory: web
+        run: pnpm lint
+      - name: Typecheck
+        working-directory: web
+        run: pnpm typecheck
+      - name: Test
+        working-directory: web
+        run: pnpm test
+      - name: Build
+        working-directory: web
+        run: pnpm build
+
   # ── Deploy ─────────────────────────────────────────────────────────────────
   deploy-sandbox:
     name: Deploy — sandbox
@@ -180,20 +220,127 @@ jobs:
         working-directory: infra
         run: pnpm ci-deploy-prod
 
+  deploy-web-sandbox:
+    name: Deploy web — sandbox
+    runs-on: ubuntu-latest
+    needs: [changes, web, deploy-sandbox]
+    # The SPA is deployed when it changed, or when an infra deploy has just
+    # rebuilt the bucket underneath it. `always()` is needed because the infra
+    # deploy is legitimately skipped on a web-only change.
+    if: |
+      always()
+      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && needs.web.result == 'success'
+      && needs.deploy-sandbox.result != 'failure'
+      && needs.deploy-sandbox.result != 'cancelled'
+    environment: sandbox
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials (sandbox)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_SANDBOX_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Set config from SSM
+        working-directory: web
+        run: bash scripts/set-config.sh sandbox
+      - name: Build
+        working-directory: web
+        run: pnpm build
+      - name: Publish to S3
+        working-directory: web
+        run: |
+          BUCKET=$(aws ssm get-parameter --name /lightning/sandbox/web/bucket-name --query Parameter.Value --output text)
+          aws s3 sync dist/ "s3://$BUCKET" --delete
+      - name: Invalidate CloudFront
+        run: |
+          DIST_ID=$(aws ssm get-parameter --name /lightning/sandbox/web/distribution-id --query Parameter.Value --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+
+  deploy-web-prod:
+    name: Deploy web — prod
+    runs-on: ubuntu-latest
+    needs: [changes, web, deploy-prod]
+    # The SPA is deployed when it changed, or when an infra deploy has just
+    # rebuilt the bucket underneath it. `always()` is needed because the infra
+    # deploy is legitimately skipped on a web-only change.
+    if: |
+      always()
+      && (github.event_name == 'push' || github.event_name == 'workflow_dispatch')
+      && needs.web.result == 'success'
+      && needs.deploy-prod.result != 'failure'
+      && needs.deploy-prod.result != 'cancelled'
+    environment: production
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ env.CHECKOUT_REF }}
+      - uses: pnpm/action-setup@v4
+        with:
+          package_json_file: web/package.json
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '25'
+          cache: 'pnpm'
+          cache-dependency-path: web/pnpm-lock.yaml
+      - name: Install dependencies
+        working-directory: web
+        run: pnpm install --frozen-lockfile
+      - name: Configure AWS credentials (prod)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_PROD_ROLE_ARN }}
+          aws-region: ${{ env.AWS_REGION }}
+      - name: Set config from SSM
+        working-directory: web
+        run: bash scripts/set-config.sh prod
+      - name: Build
+        working-directory: web
+        run: pnpm build
+      - name: Publish to S3
+        working-directory: web
+        run: |
+          BUCKET=$(aws ssm get-parameter --name /lightning/prod/web/bucket-name --query Parameter.Value --output text)
+          aws s3 sync dist/ "s3://$BUCKET" --delete
+      - name: Invalidate CloudFront
+        run: |
+          DIST_ID=$(aws ssm get-parameter --name /lightning/prod/web/distribution-id --query Parameter.Value --output text)
+          aws cloudfront create-invalidation --distribution-id "$DIST_ID" --paths "/*"
+
   # ── Gate ───────────────────────────────────────────────────────────────────
   # One always-running job for branch protection to require, so adding or
   # skipping a job never silently weakens the gate.
   ci-status:
     name: CI Status
     runs-on: ubuntu-latest
-    needs: [infra, synth-infra]
+    needs: [infra, synth-infra, web]
     if: always()
     steps:
       - name: Fail if any needed job failed
         run: |
           echo "infra:       ${{ needs.infra.result }}"
           echo "synth-infra: ${{ needs.synth-infra.result }}"
-          for result in "${{ needs.infra.result }}" "${{ needs.synth-infra.result }}"; do
+          echo "web:         ${{ needs.web.result }}"
+          for result in "${{ needs.infra.result }}" "${{ needs.synth-infra.result }}" "${{ needs.web.result }}"; do
             if [[ "$result" == "failure" || "$result" == "cancelled" ]]; then
               echo "::error::A required job did not pass"
               exit 1
