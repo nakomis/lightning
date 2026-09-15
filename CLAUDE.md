@@ -1,7 +1,7 @@
 # lightning
 
 `lightning.nakomis.com` — a web app for hosting and presenting lightning talks.
-Taiga project **Lightning**, prefix **LTNG**.
+Plane project **Lightning**, identifier **LIGHT** (was LTNG in Taiga; numbers unchanged).
 
 ## Stack
 
