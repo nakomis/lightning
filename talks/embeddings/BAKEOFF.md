@@ -8,7 +8,7 @@ space.* As technical as possible.
 
 | | Programmatic | Veo 3.1 Fast |
 |---|---|---|
-| File | `vector-distance.html` (18 KB) | `assets/veo31-vector-distance-15s.mp4` (31 MB, not in git — see below) |
+| File | `vector-distance.html` (18 KB) | `assets/veo31-vector-distance-15s.mp4` (31 MB, Git LFS) |
 | Cost | Claude tokens | **$1.60** (2 × 8s, 1080p, no audio) |
 | Time | ~40 min, several real bugs | ~90 seconds |
 | Maths | Correct | **Wrong** |
@@ -86,7 +86,7 @@ Do not put the Pythagoras frame in front of developers.
 
 ## Where the video went
 
-The Veo 3.1 clip is 31 MB and lost the bake-off, so it was stripped from history
-when these talks moved here from `nakomis/claude-chats` (LIGHT-15). `*.mp4` is
-gitignored under `talks/`; a local copy sits in `assets/` on Martin's machine, and
-the original commit (`8682466`) is still on the `lightning` branch of claude-chats.
+The Veo 3.1 clip is 31 MB, so it lives in **Git LFS** (`talks/**/*.mp4`, see
+`.gitattributes`). It was stripped from the ordinary git history when these talks
+moved here from `nakomis/claude-chats` (LIGHT-15) and re-added through LFS, so a
+clone without `git lfs` gets a small pointer file instead of the video.
