@@ -8,7 +8,7 @@ space.* As technical as possible.
 
 | | Programmatic | Veo 3.1 Fast |
 |---|---|---|
-| File | `vector-distance.html` (18 KB) | `assets/veo31-vector-distance-15s.mp4` (31 MB) |
+| File | `vector-distance.html` (18 KB) | `assets/veo31-vector-distance-15s.mp4` (31 MB, not in git — see below) |
 | Cost | Claude tokens | **$1.60** (2 × 8s, 1080p, no audio) |
 | Time | ~40 min, several real bugs | ~90 seconds |
 | Maths | Correct | **Wrong** |
@@ -83,3 +83,10 @@ seconds of it — the receding tile field — as a silent backdrop while you say
 diagram for the maths.
 
 Do not put the Pythagoras frame in front of developers.
+
+## Where the video went
+
+The Veo 3.1 clip is 31 MB and lost the bake-off, so it was stripped from history
+when these talks moved here from `nakomis/claude-chats` (LIGHT-15). `*.mp4` is
+gitignored under `talks/`; a local copy sits in `assets/` on Martin's machine, and
+the original commit (`8682466`) is still on the `lightning` branch of claude-chats.
