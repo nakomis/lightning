@@ -1,0 +1,4 @@
+__pycache__/
+# Large generated media stays out of git; see embeddings/BAKEOFF.md
+*.mp4
+node_modules/
