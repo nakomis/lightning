@@ -92,6 +92,44 @@ export default function TalkList({ talks, collections, selectedId, onSelect }: T
           </section>
         );
       })}
+
+      <LockedGroup />
     </nav>
+  );
+}
+
+/**
+ * A deliberately inert group, hinting that the list is a subset.
+ *
+ * There is nothing behind it yet — unlocking is a Cognito re-authentication so
+ * that one client's talks are not on screen whilst presenting to another. Until
+ * that exists it stays disabled rather than absent, because the affordance is
+ * doing the work: the audience learns there is more without being shown what.
+ */
+function LockedGroup() {
+  return (
+    <section>
+      <h2>
+        <button
+          type="button"
+          disabled
+          title="Sign in again to unlock"
+          className="flex w-full cursor-not-allowed items-center gap-2 rounded px-2 py-1.5 text-left text-xs font-semibold tracking-wide text-muted/60 uppercase"
+        >
+          <svg
+            aria-hidden="true"
+            viewBox="0 0 16 16"
+            className="size-3.5 shrink-0"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="1.6"
+          >
+            <rect x="3.25" y="7" width="9.5" height="6.75" rx="1.4" />
+            <path d="M5.5 7V5a2.5 2.5 0 0 1 5 0v2" />
+          </svg>
+          <span className="flex-1">Locked</span>
+        </button>
+      </h2>
+    </section>
   );
 }
