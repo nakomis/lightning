@@ -84,6 +84,15 @@ Collections at launch: **Personal**, **TDS**. Adding one is a row, not a deploy.
   302s to a short-lived presigned URL — the shareable link is permanent, the
   redirect target is not.
 
+## Talks
+
+`talks/` holds the source of the talks hosted on the app, one folder per talk
+(moved from `nakomis/claude-chats` in LIGHT-15; see `talks/README.md`). They are
+content, not app code: nothing in CI builds or deploys them, and a talk reaches the
+app by uploading its single HTML file. Embeddings is generated, so edit the scene
+sources and rerun `build-animations.py` then `build_deck.py` rather than touching
+`animations/` or `embeddings.html`.
+
 ## Testing
 
 ```bash

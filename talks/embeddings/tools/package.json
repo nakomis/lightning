@@ -1,0 +1,10 @@
+{
+  "name": "lightning-tex",
+  "private": true,
+  "type": "module",
+  "description": "Build-time LaTeX to SVG-paths, so decks carry no font or runtime dependency.",
+  "dependencies": {
+    "mathjax-full": "^3.2.2"
+  },
+  "packageManager": "pnpm@11.5.1"
+}

@@ -1,0 +1,286 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Similarity becomes distance</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Public+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+
+
+  :root {
+    --ground:#F1F0EC; --surface:#FFFFFF; --sunk:#E5E4DF;
+    --ink:#171B24; --muted:#656B7A; --line:#D2D1CB;
+    --primary:#4C6285; --on-primary:#FFF;
+    --signal:#1B62D6; --miss:#B02A1E; --hit:#1B7F4B; --signal-soft:#DCE7FA;
+    --f-display:"Archivo",system-ui,sans-serif;
+    --f-body:"Public Sans",system-ui,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --u:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+      --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+      --primary:#93A9C9; --on-primary:#12141A;
+      --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+    --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+    --primary:#93A9C9; --on-primary:#12141A;
+    --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; background:var(--ground); color:var(--ink);
+    font-family:var(--f-body);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--u)*1.5); padding:calc(var(--u)*3);
+  }
+  header { text-align:center; }
+  .eyebrow {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--signal); margin-bottom:calc(var(--u)*.6);
+  }
+  h1 { font-family:var(--f-display); font-size:calc(var(--u)*3.2); margin:0; font-weight:800; letter-spacing:-.02em; }
+  .stage { width:100%; max-width:980px; }
+  svg { width:100%; height:auto; display:block; }
+  .controls { display:flex; gap:calc(var(--u)*.6); align-items:center; font-family:var(--f-mono); font-size:calc(var(--u)*1.15); color:var(--muted); }
+  button {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15);
+    background:transparent; color:var(--muted); border:1px solid var(--line);
+    border-radius:4px; padding:calc(var(--u)*.35) calc(var(--u)*.9); cursor:pointer;
+  }
+  button:hover { color:var(--ink); border-color:var(--muted); }
+  button:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+  /* ---- diagram idiom, same as the deck ---- */
+  .box   { fill:var(--surface); stroke:var(--line); stroke-width:1.5; }
+  .box.pri { stroke:var(--primary); }
+  .box.acc { stroke:var(--signal); }
+  .t     { fill:var(--ink); font-family:var(--f-body); font-size:13px; font-weight:600; }
+  .s     { fill:var(--muted); font-family:var(--f-mono); font-size:10.5px; }
+  .mono  { fill:var(--ink); font-family:var(--f-mono); font-size:12px; }
+  .lab   { fill:var(--muted); font-family:var(--f-mono); font-size:10px; }
+  .l     { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .l.acc { stroke:var(--signal); stroke-width:2; }
+  .arrow { fill:var(--muted); stroke:none; }
+  .eq    { fill:var(--ink); font-family:var(--f-mono); font-size:15px; font-weight:500; }
+  .plane { fill:var(--primary); fill-opacity:.07; stroke:var(--primary); stroke-width:1; stroke-opacity:.45; }
+  .shared{ stroke-width:3.5; }
+  .node  { fill:var(--signal); }
+  .ra    { fill:none; stroke:var(--muted); stroke-width:1.2; }
+  .l.t1  { stroke:var(--ink); stroke-width:2; }
+  .eq .op { fill:var(--muted); }
+  .hl    { fill:var(--signal); }
+  .dim   { fill:var(--primary); }
+
+  /* Every animated element is invisible until the timeline reaches it, so a
+     still frame of the finished state is never what you see first. */
+  .anim { opacity:0; transform-box:fill-box; transform-origin:center; }
+  /* Fill-mode is written into every shorthand below rather than set here:
+     an `animation:` shorthand resets any longhand that precedes it, so a
+     separate animation-fill-mode rule is silently discarded. */
+  .run .anim { animation-timing-function:cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes fadeOut { from{opacity:1} to{opacity:0} }
+  @keyframes riseIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes drawIn { from{opacity:0; stroke-dashoffset:var(--len)} to{opacity:1; stroke-dashoffset:0} }
+  @keyframes growUp { from{opacity:0; transform:scaleY(0)} to{opacity:1; transform:scaleY(1)} }
+  @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
+
+  .anim.tr { transform-box:fill-box; }
+  .rim    { fill:none; stroke:var(--line); stroke-width:1.6; }
+  .radius { fill:none; stroke:var(--muted); stroke-width:1.2; stroke-dasharray:3 4; }
+  .orig   { fill:var(--ink); }
+  .tri    { stroke:none; }
+  .tri.hit  { fill:var(--hit);  fill-opacity:.16; }
+  .tri.miss { fill:var(--miss); fill-opacity:.13; }
+  .chord  { fill:none; stroke-width:3; }
+  .chord.hit { stroke:var(--hit); }  .chord.miss { stroke:var(--miss); }
+  .arc2   { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .ra     { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .dot    { stroke:var(--ground); stroke-width:1.5; }
+  .dot.ca { fill:var(--signal); }
+  .dot.cb { fill:var(--ground); stroke:var(--primary); stroke-width:2.5; }
+  .near   { stroke:var(--hit);  stroke-width:3; fill:none; }
+  .far    { stroke:var(--miss); stroke-width:3; fill:none; }
+  .radius { fill:none; stroke:var(--muted); stroke-width:1.2; stroke-dasharray:3 4; stroke-opacity:.8; }
+  .orig   { fill:var(--ink); }
+  .tri    { fill:var(--primary); fill-opacity:.13; stroke:var(--muted); stroke-width:1.3; }
+  .chord  { fill:none; stroke-width:3; }
+  .chord.hit { stroke:var(--hit); }  .chord.miss { stroke:var(--miss); }
+  .arc2   { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .ra     { fill:none; stroke:var(--ink); stroke-width:1.4; }
+  .sub { margin:calc(var(--u)*.8) 0 0; color:var(--muted); font-size:calc(var(--u)*1.35); max-width:60ch; }
+
+
+  .controls { display:flex; gap:calc(var(--u)*.8); align-items:center; flex-wrap:wrap;
+              justify-content:center; font-family:var(--f-mono);
+              font-size:calc(var(--u)*1.15); color:var(--muted); }
+  .speed { display:flex; align-items:center; gap:calc(var(--u)*.5); }
+  .speed input[type=range] { width:150px; accent-color:var(--signal); }
+  .speed output { font-variant-numeric:tabular-nums; min-width:3.4em; }
+
+  .run .s4-ball  { animation:fadeIn .50s 0.0s both; }
+  .run .s4-ca    { animation:popIn .30s calc(0.6s + var(--i)*.09s) both; }
+  .run .s4-calab { animation:fadeIn .35s 1.05s both; }
+  .run .s4-cb    { animation:popIn .30s calc(1.25s + var(--i)*.09s) both; }
+  .run .s4-cblab { animation:fadeIn .35s 1.7s both; }
+  .run .s4-orig  { animation:fadeIn .45s 1.95s both; }
+  .run .s4-near  { animation:fadeIn .50s 2.35s both; }
+  .run .s4-nlab  { animation:riseIn .40s 2.65s both; }
+  .run .s4-far   { animation:fadeIn .55s 3.65s both; }
+  .run .s4-flab  { animation:riseIn .40s 4.25s both; }
+  .run .s4-pay   { animation:riseIn .50s 5.25s both; }
+  .run .s4-why   { animation:fadeIn .50s 6.25s both; }
+  @media (prefers-reduced-motion: reduce) {
+    .anim { opacity:1 !important; }
+    .run .anim { animation:none !important both; }
+    
+  }
+</style>
+
+<header>
+  <div class="eyebrow">Why any of this matters</div>
+  <h1>Similarity becomes distance</h1>
+  <p class="sub">Two points and the origin make a triangle. Similarity is now an angle.</p>
+</header>
+
+<div class="stage">
+<svg id="fig" viewBox="0 0 1000 470" role="img" aria-label="A two-dimensional shadow of the unit circle. Every message is L2-normalised so it lands on the surface. Messages about one subject cluster together; messages about another cluster elsewhere. Two points in the same cluster are 21 degrees apart, a chord of 0.36. Two points in different clusters are 127 degrees apart, a chord of 1.79. Because the radius is fixed, distance and angle are the same fact.">
+<g class="scene" data-scene="4">
+    <g class="s4-ball anim">
+      <circle class="rim" cx="290" cy="250" r="150"/>
+      <text class="lab" x="290" y="434" text-anchor="middle">the unit circle — a flat slice of 1024 dimensions</text>
+    </g>
+
+    <!-- the origin, and the radii the angles are measured between -->
+    <g class="s4-orig anim">
+      <path class="radius" d="M290 250 L140.4 260.5"/>
+      <path class="radius" d="M290 250 L157.6 320.4"/>
+      <path class="radius" d="M290 250 L279.5 100.4"/>
+      <circle class="orig" cx="290" cy="250" r="4.5"/>
+      <text class="t" x="301" y="268" font-size="13">O</text>
+      <text class="lab" x="209" y="247" text-anchor="end">1</text>
+    </g>
+
+    <circle class="dot ca s4-ca anim" style="--i:0" cx="141.5" cy="229.1" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:1" cx="140.4" cy="260.5" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:2" cx="145.8" cy="291.3" r="6"/>
+    <circle class="dot ca s4-ca anim" style="--i:3" cx="157.6" cy="320.4" r="6"/>
+    <text class="s s4-calab anim hl" x="124" y="346" text-anchor="end">messages about cats</text>
+
+    <circle class="dot cb s4-cb anim" style="--i:0" cx="310.9" cy="101.5" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:1" cx="279.5" cy="100.4" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:2" cx="248.7" cy="105.8" r="6"/>
+    <circle class="dot cb s4-cb anim" style="--i:3" cx="219.6" cy="117.6" r="6"/>
+    <text class="s s4-cblab anim" x="265" y="80" text-anchor="middle">messages about Docker</text>
+
+    <!-- same subject: the triangle O-P-Q lives in one plane, and the angle is true -->
+    <g class="s4-near anim">
+      <path class="tri hit" d="M290 250 L140.4 260.5 L157.6 320.4 Z"/>
+      <path class="arc2" d="M246.1 253.1 A44 44 0 0 0 251.2 270.7"/>
+      <text class="mono hit" x="232" y="267" text-anchor="middle">24°</text>
+      <path class="chord hit" d="M140.4 260.5 L157.6 320.4"/>
+      <text class="mono hit" x="126" y="294" text-anchor="end">0.42</text>
+    </g>
+
+    <!-- different subjects: a right angle, so the square rather than an arc -->
+    <g class="s4-far anim">
+      <path class="tri miss" d="M290 250 L140.4 260.5 L279.5 100.4 Z"/>
+      <path class="ra" d="M272.0 251.3 L270.8 233.3 L288.7 232.0"/>
+      <text class="mono miss" x="243" y="209" text-anchor="middle">90°</text>
+      <path class="chord miss" d="M140.4 260.5 L279.5 100.4"/>
+      <text class="mono miss" x="184" y="172" text-anchor="middle">1.41</text>
+    </g>
+
+    <!-- readouts -->
+    <g class="s4-nlab anim">
+      <rect class="box" x="600" y="104" width="360" height="76" rx="6"/>
+      <circle class="dot ca" cx="626" cy="134" r="5.5"/>
+      <circle class="dot ca" cx="644" cy="134" r="5.5"/>
+      <text class="t"        x="666" y="139">same subject</text>
+      <text class="mono hit" x="944" y="139" text-anchor="end">θ = 24°</text>
+      <text class="s"        x="626" y="164">a narrow angle, and a short chord</text>
+    </g>
+    <g class="s4-flab anim">
+      <rect class="box" x="600" y="194" width="360" height="76" rx="6"/>
+      <circle class="dot ca" cx="626" cy="224" r="5.5"/>
+      <circle class="dot cb" cx="644" cy="224" r="5.5"/>
+      <text class="t"         x="666" y="229">nothing in common</text>
+      <text class="mono miss" x="944" y="229" text-anchor="end">θ = 90°</text>
+      <text class="s"         x="626" y="254">perpendicular — cos θ = 0, nothing shared</text>
+    </g>
+
+    <text class="eq s4-pay anim hl" x="600" y="310">similar → close → small angle</text>
+    <text class="s s4-pay anim" x="600" y="336">Two vectors span a plane, and in that plane you have an</text>
+    <text class="s s4-pay anim" x="600" y="354">ordinary triangle: two sides of length 1, and θ between them.</text>
+    <text class="lab s4-pay anim" x="600" y="378">law of cosines:  d² = 1 + 1 − 2cos θ  =  2(1 − cos θ)</text>
+
+    <text class="s s4-why anim" x="600" y="416">So "how similar are these two messages" is now literally</text>
+    <text class="s s4-why anim" x="600" y="434">"how far apart are these two points" — a question about</text>
+    <text class="s s4-why anim" x="600" y="452">triangles. Hence the next slide.</text>
+  </g>
+</svg>
+</div>
+
+<div class="controls">
+  <button id="replay">↻ replay</button>
+  <button id="theme">◐ theme</button>
+  <span class="speed">
+    <label for="rate">speed</label>
+    <input id="rate" type="range" min="0.10" max="1.50" step="0.01" value="0.33">
+    <output id="rateout">0.33×</output>
+  </span>
+  <span id="clock">0.0s</span>
+</div>
+
+<script>
+
+  const fig = document.getElementById('fig');
+  const clock = document.getElementById('clock');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const DUR = 7.0;
+  let raf = 0, t0 = 0;
+
+  // Rate control via the Web Animations API rather than rewriting durations:
+  // playbackRate scales CSS animations already in flight, so the slider is live.
+  const rateEl = document.getElementById('rate');
+  const rateOut = document.getElementById('rateout');
+  let rate = 0.33;
+  try { const v = localStorage.getItem('anim-rate'); if (v) rate = +v; } catch (e) {}
+  rateEl.value = rate;
+
+  function applyRate (r) {
+    rate = r;
+    rateOut.textContent = r.toFixed(2) + '×';
+    for (const a of fig.getAnimations({ subtree: true })) a.playbackRate = r;
+    try { localStorage.setItem('anim-rate', String(r)); } catch (e) {}
+  }
+  rateEl.addEventListener('input', () => applyRate(+rateEl.value));
+
+  function tick (now) {
+    const t = ((now - t0) / 1000) * rate;      // scene time, not wall time
+    clock.textContent = Math.min(t, DUR).toFixed(1) + 's / ' + DUR + 's';
+    if (t < DUR + 0.3) raf = requestAnimationFrame(tick);
+  }
+  function play () {
+    cancelAnimationFrame(raf);
+    fig.classList.remove('run');
+    void fig.getBoundingClientRect();
+    fig.classList.add('run');
+    applyRate(rate);
+    if (!reduced) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    else { clock.textContent = 'static'; }
+  }
+  document.getElementById('replay').addEventListener('click', play);
+  document.getElementById('theme').addEventListener('click', () => {
+    const g = getComputedStyle(document.documentElement).getPropertyValue('--ground').trim().toLowerCase();
+    document.documentElement.setAttribute('data-theme', g === '#12141a' ? 'light' : 'dark');
+  });
+  play();
+</script>

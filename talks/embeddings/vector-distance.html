@@ -1,0 +1,459 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Distance in 1024 dimensions</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@400;600;700;800&family=Public+Sans:wght@400;500;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+
+<style>
+  :root {
+    --ground:#F1F0EC; --surface:#FFFFFF; --sunk:#E5E4DF;
+    --ink:#171B24; --muted:#656B7A; --line:#D2D1CB;
+    --primary:#4C6285; --on-primary:#FFF;
+    --signal:#1B62D6; --miss:#B02A1E; --hit:#1B7F4B; --signal-soft:#DCE7FA;
+    --f-display:"Archivo",system-ui,sans-serif;
+    --f-body:"Public Sans",system-ui,sans-serif;
+    --f-mono:"IBM Plex Mono",ui-monospace,monospace;
+    --u:10px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+      --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+      --primary:#93A9C9; --on-primary:#12141A;
+      --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+    }
+  }
+  :root[data-theme="dark"] {
+    --ground:#12141A; --surface:#1A1D25; --sunk:#0D0F14;
+    --ink:#ECEDF1; --muted:#9AA0AE; --line:#2C303B;
+    --primary:#93A9C9; --on-primary:#12141A;
+    --signal:#6FA8FF; --miss:#F0796B; --hit:#5FCB92; --signal-soft:#16283F;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin:0; min-height:100vh; background:var(--ground); color:var(--ink);
+    font-family:var(--f-body);
+    display:flex; flex-direction:column; align-items:center; justify-content:center;
+    gap:calc(var(--u)*1.5); padding:calc(var(--u)*3);
+  }
+  header { text-align:center; }
+  .eyebrow {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15); letter-spacing:.08em;
+    text-transform:uppercase; color:var(--signal); margin-bottom:calc(var(--u)*.6);
+  }
+  h1 { font-family:var(--f-display); font-size:calc(var(--u)*3.2); margin:0; font-weight:800; letter-spacing:-.02em; }
+  .stage { width:100%; max-width:980px; }
+  svg { width:100%; height:auto; display:block; }
+  .controls { display:flex; gap:calc(var(--u)*.6); align-items:center; font-family:var(--f-mono); font-size:calc(var(--u)*1.15); color:var(--muted); }
+  button {
+    font-family:var(--f-mono); font-size:calc(var(--u)*1.15);
+    background:transparent; color:var(--muted); border:1px solid var(--line);
+    border-radius:4px; padding:calc(var(--u)*.35) calc(var(--u)*.9); cursor:pointer;
+  }
+  button:hover { color:var(--ink); border-color:var(--muted); }
+  button:focus-visible { outline:2px solid var(--signal); outline-offset:2px; }
+
+  /* ---- diagram idiom, same as the deck ---- */
+  .box   { fill:var(--surface); stroke:var(--line); stroke-width:1.5; }
+  .box.pri { stroke:var(--primary); }
+  .box.acc { stroke:var(--signal); }
+  .t     { fill:var(--ink); font-family:var(--f-body); font-size:13px; font-weight:600; }
+  .s     { fill:var(--muted); font-family:var(--f-mono); font-size:10.5px; }
+  .mono  { fill:var(--ink); font-family:var(--f-mono); font-size:12px; }
+  .lab   { fill:var(--muted); font-family:var(--f-mono); font-size:10px; }
+  .l     { stroke:var(--muted); stroke-width:1.5; fill:none; }
+  .l.acc { stroke:var(--signal); stroke-width:2; }
+  .arrow { fill:var(--muted); stroke:none; }
+  .eq    { fill:var(--ink); font-family:var(--f-mono); font-size:15px; font-weight:500; }
+  .plane { fill:var(--primary); fill-opacity:.07; stroke:var(--primary); stroke-width:1; stroke-opacity:.45; }
+  .shared{ stroke-width:3.5; }
+  .node  { fill:var(--signal); }
+  .ra    { fill:none; stroke:var(--muted); stroke-width:1.2; }
+  .l.t1  { stroke:var(--ink); stroke-width:2; }
+  .eq .op { fill:var(--muted); }
+  .hl    { fill:var(--signal); }
+  .dim   { fill:var(--primary); }
+
+  /* Every animated element is invisible until the timeline reaches it, so a
+     still frame of the finished state is never what you see first. */
+  .anim { opacity:0; transform-box:fill-box; transform-origin:center; }
+  /* Fill-mode is written into every shorthand below rather than set here:
+     an `animation:` shorthand resets any longhand that precedes it, so a
+     separate animation-fill-mode rule is silently discarded. */
+  .run .anim { animation-timing-function:cubic-bezier(.22,.61,.36,1); }
+
+  @keyframes fadeIn { from{opacity:0} to{opacity:1} }
+  @keyframes fadeOut { from{opacity:1} to{opacity:0} }
+  @keyframes riseIn { from{opacity:0; transform:translateY(6px)} to{opacity:1; transform:translateY(0)} }
+  @keyframes drawIn { from{opacity:0; stroke-dashoffset:var(--len)} to{opacity:1; stroke-dashoffset:0} }
+  @keyframes growUp { from{opacity:0; transform:scaleY(0)} to{opacity:1; transform:scaleY(1)} }
+  @keyframes popIn { from{opacity:0; transform:scale(.7)} to{opacity:1; transform:scale(1)} }
+
+  .anim.tr { transform-box:fill-box; }
+
+  /* ================= ACT 1 : text -> vector  (0 - 5.0s) ================= */
+  .run .a1-src   { animation:riseIn .45s .10s both; }
+  .run .a1-tok   { animation:popIn .30s calc(.70s + var(--i)*.09s) both; transform-origin:center; }
+  .run .a1-arrow { animation:fadeIn .35s 1.45s both; }
+  .run .a1-model { animation:riseIn .40s 1.55s both; }
+  .run .a1-col   { animation:riseIn .40s calc(2.15s + var(--i)*.055s) both; }
+  .run .a1-brack { animation:fadeIn .40s 2.75s both; }
+  .run .a1-note  { animation:fadeIn .45s 3.20s both; }
+  .run .act1     { animation:fadeOut .40s 4.35s forwards; }
+
+  /* ============ ACT 2 : the hypotenuse becomes a leg  (4.6 - 10.6s) ==== */
+  .run .a2-floor  { animation:fadeIn .45s 4.70s both; }
+  .run .a2-t1     { animation:drawIn .65s 5.00s both; }
+  .run .a2-t1lab  { animation:fadeIn .35s 5.60s both; }
+  .run .a2-share  { animation:fadeIn .40s 6.05s both; }
+  .run .a2-asHyp  { animation:fadeIn .35s 6.25s both; }
+  /* The relabel is the beat: same line, same place, new job. */
+  .run .a2-asHyp  { animation:fadeIn .35s 6.25s both, fadeOut .30s 7.05s both; }
+  .run .a2-asLeg  { animation:fadeIn .35s 7.25s both; }
+  .run .a2-plane2 { animation:fadeIn .50s 7.45s both; }
+  .run .a2-legz   { animation:drawIn .55s 7.95s both; }
+  .run .a2-hyp3   { animation:drawIn .60s 8.50s both; }
+  .run .a2-eqA    { animation:riseIn .40s 5.90s both; }
+  .run .a2-hand   { animation:riseIn .45s 6.95s both; }
+  .run .a2-eqB    { animation:riseIn .45s 8.70s both; }
+  .run .a2-fin    { animation:riseIn .50s 9.40s both; }
+  .run .act2      { animation:fadeOut .40s 11.05s forwards; }
+
+  /* ============ ACT 3 : unroll the recursion  (10.6 - 15.0s) =========== */
+  .run .a3-tile  { animation:fadeIn .34s calc(11.40s + var(--i)*.024s) both; }
+  .run .a3-cap   { animation:riseIn .45s 13.35s both; }
+  .run .a3-rec   { animation:riseIn .45s 11.50s both; }
+  .run .a3-eqn   { animation:riseIn .45s 13.10s both; }
+  .run .a3-rule  { animation:fadeIn .40s 14.00s both; }
+  .run .a3-cos   { animation:riseIn .50s 14.20s both; }
+
+  @media (prefers-reduced-motion: reduce) {
+    .anim { opacity:1 !important; }
+    .run .anim { animation:none !important both; }
+    .run .act1, .run .act2 { opacity:0 !important; }
+  }
+</style>
+
+<header>
+  <div class="eyebrow">How recall actually works</div>
+  <h1>Distance in 1024 dimensions</h1>
+</header>
+
+<div class="stage">
+<svg id="fig" viewBox="0 0 980 430" role="img"
+     aria-label="Three stages. First, the sentence 'the cat sat on the mat' is tokenised and embedded by mxbai-embed-large into a 1024-element unit vector. Second, Pythagoras: in two dimensions d squared equals delta-one squared plus delta-two squared; a third perpendicular axis adds delta-three squared. Third, the same sum generalised to 1024 terms, giving Euclidean distance; and because the vectors are unit length, d squared equals 2 times 1 minus cosine theta, which is what the pgvector cosine-distance operator computes.">
+
+  <!-- ============================ ACT 1 ============================ -->
+  <g class="act1">
+
+    <text class="s a1-src anim" x="40" y="42">input message</text>
+    <g class="a1-src anim">
+      <rect class="box" x="34" y="54" width="330" height="38" rx="5"/>
+      <text class="mono" x="50" y="78">"the cat sat on the mat"</text>
+    </g>
+
+    <!-- tokenised: one box per token, real widths -->
+    <g>
+      <rect class="box pri a1-tok anim tr" style="--i:0" x="34"  y="118" width="42" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:0" x="55"  y="135" text-anchor="middle">the</text>
+      <rect class="box pri a1-tok anim tr" style="--i:1" x="82"  y="118" width="42" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:1" x="103" y="135" text-anchor="middle">cat</text>
+      <rect class="box pri a1-tok anim tr" style="--i:2" x="130" y="118" width="42" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:2" x="151" y="135" text-anchor="middle">sat</text>
+      <rect class="box pri a1-tok anim tr" style="--i:3" x="178" y="118" width="34" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:3" x="195" y="135" text-anchor="middle">on</text>
+      <rect class="box pri a1-tok anim tr" style="--i:4" x="218" y="118" width="42" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:4" x="239" y="135" text-anchor="middle">the</text>
+      <rect class="box pri a1-tok anim tr" style="--i:5" x="266" y="118" width="42" height="26" rx="4"/>
+      <text class="lab a1-tok anim"        style="--i:5" x="287" y="135" text-anchor="middle">mat</text>
+      <text class="s a1-tok anim"          style="--i:6" x="320" y="136">6 tokens</text>
+    </g>
+
+    <!-- embedder -->
+    <g class="a1-arrow anim">
+      <path class="l" d="M198 152 L198 178"/>
+      <path class="arrow" d="M198 186 l-4.5 -9 h9 z"/>
+    </g>
+    <g class="a1-model anim">
+      <rect class="box acc" x="70" y="188" width="256" height="46" rx="5"/>
+      <text class="t"    x="198" y="209" text-anchor="middle">mxbai-embed-large</text>
+      <text class="s"    x="198" y="226" text-anchor="middle">local, via Ollama · 1024-d output</text>
+    </g>
+    <!-- Elbow across to the vector, so the output of the embedder is visibly
+         the thing on the right rather than an arrow into blank space. -->
+    <g class="a1-arrow anim">
+      <path class="l" d="M198 240 L198 336 L446 336"/>
+      <path class="arrow" d="M454 336 l-9 -4.5 v9 z"/>
+    </g>
+
+    <!-- the vector itself -->
+    <g class="a1-brack anim">
+      <path class="l" d="M470 292 l-9 0 l0 96 l9 0"/>
+      <path class="l" d="M812 292 l9 0 l0 96 l-9 0"/>
+      <text class="lab" x="836" y="344">1024</text>
+    </g>
+    <g>
+      <text class="mono a1-col anim" style="--i:0"  x="480" y="322">0.0214</text>
+      <text class="mono a1-col anim" style="--i:1"  x="551" y="322">-0.1183</text>
+      <text class="mono a1-col anim" style="--i:2"  x="630" y="322">0.3341</text>
+      <text class="mono a1-col anim" style="--i:3"  x="701" y="322">-0.0472</text>
+      <text class="mono a1-col anim" style="--i:4"  x="480" y="352">0.1907</text>
+      <text class="mono a1-col anim" style="--i:5"  x="551" y="352">0.0663</text>
+      <text class="mono a1-col anim" style="--i:6"  x="630" y="352">-0.2250</text>
+      <text class="mono a1-col anim" style="--i:7"  x="701" y="352">0.0119</text>
+      <text class="mono a1-col anim" style="--i:8"  x="480" y="382">-0.0836</text>
+      <text class="mono a1-col anim" style="--i:9"  x="560" y="382">0.2714</text>
+      <text class="lab  a1-col anim" style="--i:10" x="640" y="382">… 1014 more</text>
+    </g>
+    <text class="s a1-note anim" x="470" y="270">one message → one point in ℝ¹⁰²⁴</text>
+    <g class="a1-note anim">
+      <text class="s" x="470" y="410">L2-normalised, so ‖v‖ = 1 — every message lands on the unit hypersphere</text>
+    </g>
+  </g>
+
+  <!-- ============================ ACT 2 ============================ -->
+  <g class="act2">
+    <!-- The nested construction, not the three-squares picture. Triangle 1 lies
+         in the floor plane; its HYPOTENUSE is then reused as a LEG of triangle 2,
+         which stands in a new plane perpendicular to the first. That handoff is
+         the whole idea — it is what makes the n-dimensional case obvious rather
+         than asserted.
+
+         Axonometric projection: X right, Y into the page, Z up. A right angle
+         in the scene therefore projects to a parallelogram, not a square, so
+         both .ra markers are built from the projected edge directions rather
+         than drawn axis-aligned.
+         x=120, y=90 -> 150   then   150, z=200 -> 250.  Both exact. -->
+
+    <!-- the two planes -->
+    <path class="plane a2-floor anim" d="M133.2 323.2 L403.2 323.2 L277.2 407.2 L7.2 407.2 Z"/>
+    <text class="lab a2-floor anim" x="292" y="404">plane 1</text>
+
+    <path class="plane a2-plane2 anim" d="M138.4 358.6 L251.4 420.2 L251.4 128.6 L138.4 67.0 Z"/>
+    <text class="lab a2-plane2 anim" x="146" y="60">plane 2 ⟂ plane 1</text>
+
+    <!-- ---- triangle 1, in the floor ---- -->
+    <g class="a2-t1 anim" style="--len:414">
+      <path class="l t1" style="stroke-dasharray:414" d="M150 340 L294 340 L229.2 383.2 Z"/>
+    </g>
+    <text class="lab a2-t1lab anim" x="222" y="334" text-anchor="middle">x = 120</text>
+    <text class="lab a2-t1lab anim" x="272" y="372">y = 90</text>
+    <path class="ra a2-t1lab anim" d="M282.0 340.0 L272.0 346.7 L284.0 346.7"/>
+
+    <!-- ---- the shared edge: drawn once, and never redrawn ---- -->
+    <path class="l acc shared a2-share anim" d="M150 340 L229.2 383.2"/>
+    <circle class="node a2-share anim" cx="150" cy="340" r="3.5"/>
+    <circle class="node a2-share anim" cx="229.2" cy="383.2" r="3.5"/>
+
+    <!-- ...first described as a hypotenuse... -->
+    <g class="a2-asHyp anim">
+      <text class="lab hl" x="152" y="381" text-anchor="end">hypotenuse</text>
+      <text class="mono hl" x="152" y="398" text-anchor="end">√(120² + 90²) = 150</text>
+    </g>
+    <!-- ...then, without moving, as a leg. -->
+    <g class="a2-asLeg anim">
+      <text class="lab hl" x="152" y="381" text-anchor="end">…now a leg</text>
+      <text class="mono hl" x="152" y="398" text-anchor="end">150</text>
+    </g>
+
+    <!-- ---- triangle 2, standing in plane 2 on that same edge ---- -->
+    <g class="a2-legz anim" style="--len:240">
+      <path class="l" style="stroke-dasharray:240" d="M229.2 383.2 L229.2 143.2"/>
+    </g>
+    <text class="lab a2-legz anim" x="236" y="266">z = 200</text>
+    <path class="ra a2-legz anim" d="M218.7 377.5 L218.7 365.5 L229.2 371.2"/>
+
+    <g class="a2-hyp3 anim" style="--len:213">
+      <path class="l acc" style="stroke-dasharray:213" d="M150 340 L229.2 143.2"/>
+    </g>
+    <text class="mono a2-hyp3 anim hl" x="150" y="228" text-anchor="end">d = 250</text>
+
+    <!-- ---- the algebra ---- -->
+    <text class="t a2-eqA anim" x="470" y="108">plane 1</text>
+    <g class="a2-eqA anim" data-tex="d_2 = \sqrt{x^2 + y^2}" data-x="470" data-y="146" data-em="25"></g>
+
+    <text class="s a2-hand anim" x="470" y="180">The hypotenuse does not stay a hypotenuse.</text>
+    <text class="s a2-hand anim" x="470" y="198">Stand a new plane on it, perpendicular to the first,</text>
+    <text class="s a2-hand anim" x="470" y="216">and it becomes one of the two <tspan class="hl">perpendicular sides</tspan>.</text>
+
+    <text class="t a2-eqB anim" x="470" y="248">plane 2</text>
+    <g class="a2-eqB anim" data-tex="d_3^{\,2} = d_2^{\,2} + z^2" data-x="470" data-y="284" data-em="21"></g>
+    <g class="a2-eqB anim" data-tex="\phantom{d_3^{\,2}} = \left(\sqrt{x^2+y^2}\right)^{2} + z^2" data-x="470" data-y="328" data-em="21"></g>
+    <g class="a2-eqB anim" data-tex="\phantom{d_3^{\,2}} = x^2 + y^2 + z^2" data-x="470" data-y="366" data-em="21"></g>
+    <g class="a2-fin anim" data-tex="d_3 = \sqrt{x^2 + y^2 + z^2}" data-x="470" data-y="412" data-em="25" data-fill="var(--signal)"></g>
+  </g>
+
+  <!-- ============================ ACT 3 ============================ -->
+  <g class="act3">
+    <!-- A spiral of Theodorus, run in three dimensions. Each triangle stands a
+         unit leg perpendicular to the hypotenuse before it, so that hypotenuse
+         becomes a leg and the next one is one dimension longer: the recursion
+         on the right, drawn. Deliberately unlabelled: the running distance is
+         only sqrt(n) because these steps are unit length, which real terms are
+         not, and the slide is about the construction rather than the number. -->
+    <g id="tiles"></g>
+    <text class="t a3-cap anim" x="215" y="368" text-anchor="middle">one triangle per dimension</text>
+    <text class="s a3-cap anim" x="215" y="394" text-anchor="middle">each leg perpendicular to every one before it</text>
+
+    <text class="t a3-rec anim" x="440" y="100">every new dimension does the same thing</text>
+    <g class="a3-rec anim" data-tex="d_2^{\,2} = \textcolor{var(--hit)}{\boldsymbol{x_1^2 + x_2^2}}"        data-x="460" data-y="140" data-em="20"></g>
+    <g class="a3-rec anim" data-tex="d_3^{\,2} = d_2^{\,2} + x_3^2 = \textcolor{var(--hit)}{\boldsymbol{x_1^2 + x_2^2 + x_3^2}}"   data-x="460" data-y="176" data-em="20"></g>
+    <g class="a3-rec anim" data-tex="d_4^{\,2} = d_3^{\,2} + x_4^2 = \textcolor{var(--hit)}{\boldsymbol{x_1^2 + x_2^2 + x_3^2 + x_4^2}}"   data-x="460" data-y="212" data-em="20"></g>
+    <text class="lab a3-rec anim" x="470" y="238">⋮</text>
+    <g class="a3-rec anim" data-tex="d_k^{\,2} = d_{k-1}^{\,2} + x_k^2" data-x="460" data-y="274" data-em="22" data-fill="var(--signal)"></g>
+    <text class="s a3-rec anim" x="620" y="274">← the previous distance, as a leg</text>
+
+    <g class="a3-eqn anim" data-tex="d(a,b) = \sqrt{\sum_{i=1}^{1024}\,(a_i - b_i)^2}" data-x="452" data-y="366" data-em="23"></g>
+
+    <g class="a3-cos anim" data-tex="d^2 = 2\,(1 - \cos\theta)" data-x="726" data-y="344" data-em="22" data-fill="var(--signal)"></g>
+    <text class="s a3-cos anim" x="726" y="374">for unit vectors — distance and</text>
+    <text class="s a3-cos anim" x="726" y="392">angle are the same fact:</text>
+    <text class="mono a3-cos anim" x="726" y="416" style="font-size:10px">ORDER BY m.embedding &lt;=&gt; $1::vector</text>
+  </g>
+</svg>
+</div>
+
+<div class="controls">
+  <button id="replay">↻ replay</button>
+  <button id="theme">◐ theme</button>
+  <span id="clock">0.0s</span>
+</div>
+
+<script>
+  // 1024 tiles, actually drawn — 32 x 32. The point of the act is that the
+  // number is large, so drawing a token handful would undercut it.
+  (function buildTiles () {
+    // A spiral of Theodorus in 3-D. Step n starts from a point at distance
+    // sqrt(n) from the origin and adds a unit leg perpendicular to it, so the
+    // new hypotenuse is sqrt(n+1) — the recursion in the right-hand column,
+    // made out of triangles. In two dimensions every triangle shares a plane;
+    // twisting the leg a little about the hypotenuse each time lifts the fan
+    // into a shell, which is nearer the truth: each dimension is perpendicular
+    // to everything already spent.
+    const N = 66, TWIST = 14 * Math.PI / 180, YAW = 35, PITCH = 22;
+    const CX = 215, CY = 195, HALF = 140;
+    // Rainbow, then the aromantic flag top stripe to bottom: eleven colours,
+    // and N is a multiple of eleven so the walk ends on the flag's last stripe
+    // rather than halfway through it. The flag's black is lifted to a dark
+    // grey — at true black the leg reads as a hole in the shell rather than a
+    // line, on either ground.
+    const PRIDE = ['#E4322B', '#F08A24', '#E8B10A', '#2FA84F', '#1B62D6', '#8B4FCF',
+                   '#3DA542', '#A7D379', '#FFFFFF', '#A9A9A9', '#4A4A4A'];
+
+    const dot = (a, b) => a[0] * b[0] + a[1] * b[1] + a[2] * b[2];
+    const norm = (a) => { const m = Math.sqrt(dot(a, a)); return [a[0] / m, a[1] / m, a[2] / m]; };
+    const cross = (a, b) => [a[1] * b[2] - a[2] * b[1], a[2] * b[0] - a[0] * b[2], a[0] * b[1] - a[1] * b[0]];
+
+    // Walk the spiral. The next leg is the previous one parallel-transported
+    // onto the new perpendicular plane, then rotated by TWIST within it — that
+    // keeps the frame continuous instead of jumping when it is rebuilt.
+    let P = [1, 0, 0], u = [0, 1, 0];
+    const pts = [P];
+    for (let k = 0; k < N; k++) {
+      const Q = [P[0] + u[0], P[1] + u[1], P[2] + u[2]];
+      pts.push(Q);
+      const e = norm(Q);
+      const d = dot(u, e);
+      const b1 = norm([u[0] - d * e[0], u[1] - d * e[1], u[2] - d * e[2]]);
+      const b2 = cross(e, b1);
+      const c = Math.cos(TWIST), sn = Math.sin(TWIST);
+      u = [c * b1[0] + sn * b2[0], c * b1[1] + sn * b2[1], c * b1[2] + sn * b2[2]];
+      P = Q;
+    }
+
+    const cy = Math.cos(YAW * Math.PI / 180), sy = Math.sin(YAW * Math.PI / 180);
+    const cp = Math.cos(PITCH * Math.PI / 180), sp = Math.sin(PITCH * Math.PI / 180);
+    const project = (p) => {
+      const x1 = p[0] * cy + p[2] * sy, z1 = -p[0] * sy + p[2] * cy;
+      return [x1, p[1] * cp - z1 * sp, p[1] * sp + z1 * cp];
+    };
+
+    const V = pts.map(project), O = project([0, 0, 0]);
+    const all = V.concat([O]);
+    const xs = all.map((p) => p[0]), ys = all.map((p) => p[1]);
+    const lo = (a) => Math.min.apply(null, a), hi = (a) => Math.max.apply(null, a);
+    const span = Math.max(hi(xs) - lo(xs), hi(ys) - lo(ys));
+    const k = 2 * HALF / span, mx = (hi(xs) + lo(xs)) / 2, my = (hi(ys) + lo(ys)) / 2;
+    // SVG y grows downward, so the projected y is negated on the way out.
+    const T = (p) => [CX + (p[0] - mx) * k, CY - (p[1] - my) * k];
+
+    const zs = V.map((p) => p[2]), zlo = lo(zs), zhi = hi(zs);
+    const ns = 'http://www.w3.org/2000/svg';
+    const make = (name, attrs) => {
+      const el = document.createElementNS(ns, name);
+      for (const a in attrs) el.setAttribute(a, attrs[a]);
+      return el;
+    };
+
+    // Painted back to front so the shell overlaps itself correctly, but the
+    // reveal order is the walk order — --i comes from the step, not the paint.
+    const order = [];
+    for (let i = 0; i < V.length - 1; i++) order.push(i);
+    order.sort((a, b) => (V[a][2] + V[a + 1][2]) - (V[b][2] + V[b + 1][2]));
+
+    const [ox, oy] = T(O);
+    const frag = document.createDocumentFragment();
+    for (const i of order) {
+      const a = T(V[i]), b = T(V[i + 1]), col = PRIDE[i % PRIDE.length];
+      // Depth cue: the far side of the shell sits back rather than competing.
+      const f = zhi > zlo ? 0.45 + 0.55 * (((V[i][2] + V[i + 1][2]) / 2 - zlo) / (zhi - zlo)) : 1;
+      const face = make('polygon', {
+        points: ox.toFixed(1) + ',' + oy.toFixed(1) + ' ' + a[0].toFixed(1) + ',' + a[1].toFixed(1) +
+                ' ' + b[0].toFixed(1) + ',' + b[1].toFixed(1),
+        fill: col, 'fill-opacity': (0.16 * f).toFixed(3),
+        stroke: col, 'stroke-opacity': (0.45 * f).toFixed(3),
+        'stroke-width': 0.9, 'stroke-linejoin': 'round',
+        class: 'a3-tile anim', opacity: 0,
+      });
+      // The unit leg is the beat of the whole act — one new dimension, added.
+      const leg = make('line', {
+        x1: a[0].toFixed(1), y1: a[1].toFixed(1), x2: b[0].toFixed(1), y2: b[1].toFixed(1),
+        stroke: col, 'stroke-opacity': f.toFixed(3), 'stroke-width': 2.6,
+        'stroke-linecap': 'round', class: 'a3-tile a3-leg anim', opacity: 0,
+      });
+      face.style.setProperty('--i', i);
+      leg.style.setProperty('--i', i);
+      frag.appendChild(face);
+      frag.appendChild(leg);
+    }
+    frag.appendChild(make('circle', { cx: ox.toFixed(1), cy: oy.toFixed(1), r: 3.2,
+                                      fill: 'var(--ink)', class: 'a3-tile anim', opacity: 0 }));
+    document.getElementById('tiles').appendChild(frag);
+
+  })();
+
+  const fig = document.getElementById('fig');
+  const clock = document.getElementById('clock');
+  const reduced = matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let raf = 0, t0 = 0;
+
+  function tick (now) {
+    const t = (now - t0) / 1000;
+    clock.textContent = Math.min(t, 15).toFixed(1) + 's';
+    if (t < 15.4) raf = requestAnimationFrame(tick);
+  }
+
+  function play () {
+    cancelAnimationFrame(raf);
+    fig.classList.remove('run');
+    void fig.getBoundingClientRect();      // force reflow so the restart takes
+    fig.classList.add('run');
+    if (!reduced) { t0 = performance.now(); raf = requestAnimationFrame(tick); }
+    else { clock.textContent = 'static'; }
+  }
+
+  document.getElementById('replay').addEventListener('click', play);
+
+  document.getElementById('theme').addEventListener('click', () => {
+    // Read the computed token rather than matchMedia — the two disagree once
+    // an explicit choice has been stamped on the root.
+    const ground = getComputedStyle(document.documentElement)
+      .getPropertyValue('--ground').trim().toLowerCase();
+    const isDark = ground === '#12141a';
+    document.documentElement.setAttribute('data-theme', isDark ? 'light' : 'dark');
+  });
+
+  play();
+</script>
