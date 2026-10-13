@@ -12,7 +12,7 @@ import { API_PATH_PREFIX, DeployEnv, HOSTED_ZONES, appDomain } from './env';
 export interface WebStackProps extends cdk.StackProps {
   deployEnv: DeployEnv;
   certificate: acm.ICertificate;
-  /** execute-api hostname of the HTTP API, fronted here under `/api/*`. */
+  /** execute-api hostname of the HTTP API, fronted here under `/api/*` and `/d/*`. */
   apiDomainName: string;
 }
 
@@ -117,6 +117,12 @@ function handler(event) {
 `),
     });
 
+    // CloudFront-to-origin is always HTTPS regardless of how the viewer
+    // arrived, so a plaintext request is only ever plaintext over the first hop.
+    const apiOrigin = new origins.HttpOrigin(apiDomainName, {
+      protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
+    });
+
     this.distribution = new cloudfront.Distribution(this, 'Distribution', {
       defaultBehavior: {
         origin: origins.S3BucketOrigin.withOriginAccessControl(this.bucket, {
@@ -131,12 +137,7 @@ function handler(event) {
       defaultRootObject: 'index.html',
       additionalBehaviors: {
         [`${API_PATH_PREFIX}/*`]: {
-          origin: new origins.HttpOrigin(apiDomainName, {
-            // CloudFront-to-origin is always HTTPS regardless of how the viewer
-            // arrived, so a plaintext request is only ever plaintext over the
-            // first hop.
-            protocolPolicy: cloudfront.OriginProtocolPolicy.HTTPS_ONLY,
-          }),
+          origin: apiOrigin,
           // Deliberately ALLOW_ALL rather than REDIRECT_TO_HTTPS: a 301 on an
           // API call is worse than useless. Non-GET clients drop the body on
           // redirect, and many drop the Authorization header too, so the retry
@@ -157,6 +158,21 @@ function handler(event) {
               eventType: cloudfront.FunctionEventType.VIEWER_REQUEST,
             },
           ],
+        },
+        // Share links. The API mints them as `<origin>/d/<token>`, with no
+        // `/api` prefix, because that is the URL people paste into Slack. Left
+        // to the default behaviour, the SPA router would turn it into the
+        // sign-in screen; sent here, it reaches the public resolver, which
+        // 302s to the deck or answers 404. API Gateway's route is `/d/{token}`
+        // too, so there is no prefix to strip.
+        '/d/*': {
+          origin: apiOrigin,
+          viewerProtocolPolicy: cloudfront.ViewerProtocolPolicy.REDIRECT_TO_HTTPS,
+          allowedMethods: cloudfront.AllowedMethods.ALLOW_GET_HEAD,
+          // The redirect target is a presigned URL that dies in minutes, and a
+          // revoke must take effect on the next click, so nothing is cached.
+          cachePolicy: cloudfront.CachePolicy.CACHING_DISABLED,
+          originRequestPolicy: cloudfront.OriginRequestPolicy.ALL_VIEWER_EXCEPT_HOST_HEADER,
         },
       },
       domainNames: [domain],

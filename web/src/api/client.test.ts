@@ -129,3 +129,47 @@ describe('uploadFile', () => {
     expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 });
+
+describe('share links', () => {
+  beforeEach(() => vi.restoreAllMocks());
+
+  it('mints a link with a POST on the talk', async () => {
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(ok({ token: 'abc', url: 'https://l.example/d/abc' }, 201));
+
+    await expect(api.share('t 1')).resolves.toEqual({
+      token: 'abc',
+      url: 'https://l.example/d/abc',
+    });
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/talks\/t%201\/share$/);
+    expect(init?.method).toBe('POST');
+  });
+
+  it('revokes one token, named in the query string, and accepts an empty 204', async () => {
+    // The API revokes per token rather than per talk, and checks the token
+    // belongs to the talk in the path.
+    const fetchMock = vi
+      .spyOn(globalThis, 'fetch')
+      .mockResolvedValue(new Response(null, { status: 204 }));
+
+    await expect(api.revokeShare('t1', 'a+b')).resolves.toBeUndefined();
+
+    const [url, init] = fetchMock.mock.calls[0];
+    expect(url).toMatch(/\/talks\/t1\/share\?token=a%2Bb$/);
+    expect(init?.method).toBe('DELETE');
+  });
+
+  it('surfaces a 404 for a token that is not on this talk', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(
+      ok({ error: 'No such token on this talk' }, 404),
+    );
+
+    await expect(api.revokeShare('t1', 'abc')).rejects.toMatchObject({
+      status: 404,
+      message: 'No such token on this talk',
+    });
+  });
+});

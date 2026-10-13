@@ -2,7 +2,6 @@ import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import * as client from '@/api/client';
-import { api } from '@/api/client';
 import type { Talk } from '@/api/types';
 import UploadPanel from '@/components/UploadPanel';
 
@@ -23,20 +22,7 @@ describe('UploadPanel', () => {
     render(<UploadPanel talk={talk} canWrite={false} onChanged={vi.fn()} />);
 
     expect(screen.getByText(/read-only access/i)).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /share link/i })).not.toBeInTheDocument();
-  });
-
-  it('shows the share URL once one is minted', async () => {
-    const user = userEvent.setup();
-    vi.spyOn(api, 'share').mockResolvedValue({
-      token: 'abc',
-      url: 'https://lightning.example/d/abc',
-    });
-
-    render(<UploadPanel talk={talk} canWrite onChanged={vi.fn()} />);
-    await user.click(screen.getByRole('button', { name: /share link/i }));
-
-    expect(await screen.findByText('https://lightning.example/d/abc')).toBeInTheDocument();
+    expect(screen.queryByLabelText(/Deck \(HTML\)/)).not.toBeInTheDocument();
   });
 
   it('uploads a picked file and refreshes the talk', async () => {

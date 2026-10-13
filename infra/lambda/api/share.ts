@@ -1,6 +1,10 @@
 /**
  * POST   /talks/{talkId}/share — mint a share token
- * DELETE /talks/{talkId}/share — revoke every token on the talk
+ * DELETE /talks/{talkId}/share?token=… — revoke that one token
+ *
+ * A token has no expiry: it works until it is revoked. POST is not idempotent —
+ * every call mints a fresh token alongside any already issued — and there is no
+ * endpoint that lists a talk's tokens, so revoking needs the token in hand.
  */
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import {

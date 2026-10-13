@@ -1,5 +1,5 @@
 import { useRef, useState } from 'react';
-import { ApiError, api, uploadFile } from '@/api/client';
+import { ApiError, uploadFile } from '@/api/client';
 import type { Talk, UploadKind } from '@/api/types';
 
 export interface UploadPanelProps {
@@ -20,11 +20,10 @@ const ACCEPT: Record<UploadKind, string> = {
   asset: '',
 };
 
-/** Upload a deck, notes or an asset, and mint or revoke the share link. */
+/** Upload a deck, notes or an asset. Sharing lives in the talk header (ShareButton). */
 export default function UploadPanel({ talk, canWrite, onChanged }: UploadPanelProps) {
   const [busy, setBusy] = useState<UploadKind>();
   const [error, setError] = useState<string>();
-  const [shareUrl, setShareUrl] = useState<string>();
   const inputs = useRef<Record<string, HTMLInputElement | null>>({});
 
   if (!canWrite) {
@@ -52,16 +51,6 @@ export default function UploadPanel({ talk, canWrite, onChanged }: UploadPanelPr
     }
   };
 
-  const onShare = async () => {
-    setError(undefined);
-    try {
-      const link = await api.share(talk.talkId);
-      setShareUrl(link.url);
-    } catch (err) {
-      setError(err instanceof ApiError ? err.message : 'Could not create a share link.');
-    }
-  };
-
   return (
     <div className="flex flex-col gap-4 p-4">
       <div className="flex flex-col gap-3">
@@ -81,24 +70,6 @@ export default function UploadPanel({ talk, canWrite, onChanged }: UploadPanelPr
             {busy === kind && <span className="text-xs text-muted">Uploading…</span>}
           </label>
         ))}
-      </div>
-
-      <div className="flex flex-col gap-2 border-t border-line pt-4">
-        <button
-          type="button"
-          onClick={() => void onShare()}
-          className="self-start rounded bg-accent px-3 py-1.5 text-sm font-medium text-accent-ink"
-        >
-          Create share link
-        </button>
-        {shareUrl && (
-          <p className="text-xs break-all text-muted">
-            Anyone with this link can download the deck and notes:{' '}
-            <a href={shareUrl} className="underline">
-              {shareUrl}
-            </a>
-          </p>
-        )}
       </div>
 
       {error && (
