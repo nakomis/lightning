@@ -5,6 +5,7 @@ import { ApiError, api } from '@/api/client';
 import type { Talk } from '@/api/types';
 import DeckViewer from '@/components/DeckViewer';
 import NewTalkForm from '@/components/NewTalkForm';
+import ShareButton from '@/components/ShareButton';
 import SignInScreen from '@/components/SignInScreen';
 import TalkList from '@/components/TalkList';
 import UploadPanel from '@/components/UploadPanel';
@@ -144,13 +145,14 @@ export default function Home() {
               <div className="flex items-baseline gap-3 border-b border-line px-4 py-2">
                 <h2 className="text-sm font-semibold">{selected.title}</h2>
                 <span className="text-xs text-muted tabular-nums">{selected.date}</span>
-                <span className="text-xs text-muted">{selected.collection}</span>
+                <span className="flex-1 text-xs text-muted">{selected.collection}</span>
+                {canWriteSelected && <ShareButton key={selected.talkId} talk={selected} />}
               </div>
               <div className="min-h-0 flex-1">
                 <DeckViewer talk={selected} />
               </div>
               <details className="border-t border-line">
-                <summary className="cursor-pointer px-4 py-2 text-sm">Files &amp; sharing</summary>
+                <summary className="cursor-pointer px-4 py-2 text-sm">Files</summary>
                 <UploadPanel talk={selected} canWrite={canWriteSelected} onChanged={refresh} />
               </details>
             </>

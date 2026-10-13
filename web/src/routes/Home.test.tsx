@@ -138,9 +138,42 @@ describe('Home', () => {
 
     renderHome();
     await user.click(await screen.findByRole('button', { name: /A talk/ }));
-    await user.click(screen.getByText(/Files & sharing/));
+    await user.click(screen.getByText('Files'));
 
     expect(screen.queryByText(/read-only access/i)).not.toBeInTheDocument();
+  });
+
+  it('offers Share on a talk the caller can write', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'me').mockResolvedValue(me());
+    vi.spyOn(api, 'talks').mockResolvedValue(talks());
+    vi.spyOn(api, 'content').mockResolvedValue({
+      url: 'https://s3/x',
+      kind: 'deck',
+      expiresIn: 900,
+    });
+
+    renderHome();
+    await user.click(await screen.findByRole('button', { name: /A talk/ }));
+
+    expect(await screen.findByRole('button', { name: 'Share' })).toBeEnabled();
+  });
+
+  it('offers no Share on a read-only talk, since minting needs rw', async () => {
+    const user = userEvent.setup();
+    vi.spyOn(api, 'me').mockResolvedValue(me({ collections: [{ name: 'TDS', role: 'ro' }] }));
+    vi.spyOn(api, 'talks').mockResolvedValue(talks());
+    vi.spyOn(api, 'content').mockResolvedValue({
+      url: 'https://s3/x',
+      kind: 'deck',
+      expiresIn: 900,
+    });
+
+    renderHome();
+    await user.click(await screen.findByRole('button', { name: /A talk/ }));
+    await screen.findByRole('heading', { level: 2, name: 'A talk' });
+
+    expect(screen.queryByRole('button', { name: 'Share' })).not.toBeInTheDocument();
   });
 
   it('reports a failure to load talks', async () => {
