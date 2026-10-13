@@ -20,10 +20,49 @@ const TALKS_TABLE = process.env.TALKS_TABLE_NAME!;
 const SHARE_TABLE = process.env.SHARE_TABLE_NAME!;
 const CONTENT_BUCKET = process.env.CONTENT_BUCKET_NAME!;
 
-const NOT_FOUND: APIGatewayProxyStructuredResultV2 = {
+// The person who follows a dead link is usually someone who was sent it and has
+// no account, so they get a page that says what happened in words rather than a
+// bare "Not found". It is the same page for every failure — revoked, never
+// issued, malformed, or an error here — so it still tells a guesser nothing.
+// Static, no scripts, nothing loaded from elsewhere.
+const NOT_FOUND_PAGE = `<!doctype html>
+<html lang="en-GB">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Link not available — Lightning</title>
+<style>
+  :root { color-scheme: light dark; --ink: #16181d; --muted: #63687a; --ground: #f7f8fb; }
+  @media (prefers-color-scheme: dark) { :root { --ink: #eceef4; --muted: #969cad; --ground: #121419; } }
+  body { margin: 0; min-height: 100vh; display: grid; place-items: center; padding: 16px;
+         box-sizing: border-box; background: var(--ground); color: var(--ink);
+         font: 16px/1.5 ui-sans-serif, system-ui, sans-serif; }
+  main { max-width: 32rem; text-align: center; }
+  h1 { font-size: 1.25rem; margin: 0 0 0.5rem; }
+  p { margin: 0; color: var(--muted); }
+</style>
+</head>
+<body>
+<main>
+<h1>This link isn’t available</h1>
+<p>It may have been revoked by the person who shared it, or copied incorrectly.
+If you still need the talk, ask them for a new link.</p>
+</main>
+</body>
+</html>
+`;
+
+export const NOT_FOUND: APIGatewayProxyStructuredResultV2 = {
   statusCode: 404,
-  headers: { 'Content-Type': 'text/plain', 'X-Robots-Tag': 'noindex, nofollow' },
-  body: 'Not found',
+  headers: {
+    'Content-Type': 'text/html; charset=utf-8',
+    'Cache-Control': 'no-store',
+    'Content-Security-Policy': "default-src 'none'; style-src 'unsafe-inline'",
+    'X-Robots-Tag': 'noindex, nofollow',
+    'Referrer-Policy': 'no-referrer',
+  },
+  body: NOT_FOUND_PAGE,
 };
 
 export const handler = async (

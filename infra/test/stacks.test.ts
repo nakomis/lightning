@@ -255,6 +255,28 @@ describe('WebStack', () => {
     });
   });
 
+  it('sends share links to the resolver rather than to the SPA', () => {
+    // The API mints `<origin>/d/<token>`. On the default behaviour the SPA
+    // router would rewrite that to index.html and the recipient would meet a
+    // sign-in screen instead of the deck.
+    const config = Object.values(t().findResources('AWS::CloudFront::Distribution'))[0].Properties
+      .DistributionConfig;
+    const share = config.CacheBehaviors.find(
+      (b: { PathPattern: string }) => b.PathPattern === '/d/*',
+    );
+    const api = config.CacheBehaviors.find(
+      (b: { PathPattern: string }) => b.PathPattern === '/api/*',
+    );
+
+    expect(share).toBeDefined();
+    expect(share.TargetOriginId).toBe(api.TargetOriginId);
+    // Uncached, so a revoke takes effect on the very next click.
+    expect(share.CachePolicyId).toBe('4135ea2d-6df8-44a3-9df3-4b5a84be39ad');
+    expect(share.AllowedMethods).toEqual(['GET', 'HEAD']);
+    // No SPA rewrite and no prefix strip: API Gateway's route is /d/{token}.
+    expect(share.FunctionAssociations).toBeUndefined();
+  });
+
   it('lets an API error reach the caller unaltered', () => {
     // CustomErrorResponses is a property of the distribution, not of a
     // behaviour, so anything listed here also rewrites the API's 403s and
